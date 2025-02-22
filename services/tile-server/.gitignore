@@ -1,0 +1,5 @@
+# Ignore everything in the tiles directory
+tiles/
+
+# Ignore .env file
+.env
