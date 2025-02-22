@@ -1,12 +1,14 @@
 "use client";
 
 import React, { useState } from "react";
-import { MapContainer, TileLayer, Polygon, Marker } from "react-leaflet";
+import { MapContainer, TileLayer, Polygon, Polyline } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 
 import { DropdownMenuDemo } from "@/components/dropdown-menu-demo";
 import { SliderDemo } from "@/components/slider-demo";
 import { Card } from "@/components/ui/card";
+import { ComboboxDemo } from "@/components/combobox-demo";
+import { Button } from "@/components/ui/button";
 
 interface Node {
 	id: string;
@@ -63,74 +65,132 @@ const MapPage = () => {
 
 	const [year, setYear] = React.useState(2015);
 	const [isCardVisible, setIsCardVisible] = useState(false);
-
+	const [isPopupVisible, setIsPopupVisible] = useState(false);
 	const [selectedDam, setSelectedDam] = useState<Dam | null>(null);
+	const [selectedMap, setSelectedMap] = useState("1");
 
-	const handleMarkerClick = (dam: Dam) => {
+	React.useEffect(() => {
+		if (selectedMap === "2") {
+			setIsPopupVisible(true);
+		} else {
+			setIsPopupVisible(false);
+		}
+	}, [selectedMap]);
+
+	const handleDamClick = (dam: Dam) => {
 		setIsCardVisible(true);
 		setSelectedDam(dam);
 	};
 
-	const handleCloseClick = () => {
+	const handleCardClose = () => {
+		setIsCardVisible(false);
+	};
+
+	const handlePopupClose = () => {
+		setIsPopupVisible(false);
+		//TODO: set selected dam and update map
+	};
+
+	const handleMapSelect = (value: string) => {
+		setSelectedMap(value);
+		setSelectedDam(null);
 		setIsCardVisible(false);
 	};
 
 	return (
 		<div className="relative h-screen w-screen overflow-hidden">
-			<div
-				className="absolute top-0 left-1/2 transform -translate-x-1/2 text-xl"
-				style={{
-					zIndex: 100000,
-				}}
-			>
-				<SliderDemo value={year} onChange={setYear} />
-			</div>
+			{selectedMap == "3" && (
+				<div
+					className="absolute top-0 left-1/2 transform -translate-x-1/2 text-xl"
+					style={{
+						zIndex: 100000,
+					}}
+				>
+					<SliderDemo value={year} onChange={setYear} />
+				</div>
+			)}
 
 			<div style={{ zIndex: 100000 }} className="absolute right-5 top-5">
-				<DropdownMenuDemo />
+				<DropdownMenuDemo onChange={handleMapSelect} selected={selectedMap} />
 			</div>
 
+			{selectedMap == "1" && (
+				<div style={{ zIndex: 100000 }} className="absolute left-5 bottom-5">
+					<ComboboxDemo />
+				</div>
+			)}
+
+			{isPopupVisible && (
+				<div
+					className="absolute top-0 left-0 w-full h-full flex items-center justify-center bg-black bg-opacity-50"
+					style={{ zIndex: 1 }}
+				>
+					<div className="bg-white p-4 rounded shadow-lg">
+						<h2 className="mb-4 text-center">Избери град</h2>
+						<ComboboxDemo />
+						<div className="mt-4 text-center">
+							<Button onClick={handlePopupClose}>Избери</Button>
+						</div>
+					</div>
+				</div>
+			)}
+
 			<div
-				className={`absolute right-0 bottom-0 transition-transform transform ${
+				className={`absolute right-1 bottom-1/2 transition-transform transform translate-y-1/2 ${
 					isCardVisible ? "translate-x-0" : "translate-x-full"
 				}`}
 				style={{ zIndex: 10000 }}
 			>
-				<Card className="p-12 max-w-xl">
-					<button onClick={handleCloseClick} className="absolute top-2 right-2">
-						Close
-					</button>
-					<h1>{JSON.stringify(selectedDam)}</h1>
-					<h1>Hello world</h1>
-					<h1>Hello world</h1>
-					<h1>Hello world</h1>
-					<h1>Hello world</h1>
+				<Card className="p-12 max-w-lg h-[40rem]">
+					{selectedMap == "1" && (
+						<>
+							<Button
+								onClick={handleCardClose}
+								className="absolute top-2 right-2"
+							>
+								Затвори
+							</Button>
+							<h1>{JSON.stringify(selectedDam)}</h1>
+						</>
+					)}
+					{selectedMap == "3" && (
+						<>
+							<h1>fortnite topki</h1>
+						</>
+					)}
 				</Card>
 			</div>
 
 			<MapContainer
 				center={[42.4633, 23.6122]}
 				zoom={13}
-				className="h-full w-full"
+				className="h-full w-full z-0"
 			>
 				<TileLayer
 					url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
 					attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 				/>
-				{dams.map((dam, index) => (
-					<div key={index}>
-						<Polygon
-							pathOptions={{ color: "blue" }}
-							positions={dam.borderGeometry}
-						/>
-						<Marker
-							position={[dam.latitude, dam.longitude]}
-							eventHandlers={{
-								click: () => handleMarkerClick(dam),
-							}}
-						/>
-					</div>
-				))}
+				{(selectedMap == "1" || selectedMap == "3") &&
+					dams.map((dam, index) => (
+						<div key={index}>
+							<Polygon
+								pathOptions={{ color: "blue" }}
+								positions={dam.borderGeometry}
+								eventHandlers={{
+									click: () => handleDamClick(dam),
+								}}
+							/>
+						</div>
+					))}
+				{selectedMap == "2" && (
+					<Polyline
+						pathOptions={{ color: "blue" }}
+						positions={[
+							[42.43967, 23.63365],
+							[42.51703, 23.53495],
+						]}
+					/>
+				)}
 			</MapContainer>
 		</div>
 	);
