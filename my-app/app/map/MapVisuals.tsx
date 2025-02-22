@@ -1,7 +1,13 @@
 "use client";
 
 import React, { useState } from "react";
-import { MapContainer, TileLayer, Polygon, Polyline } from "react-leaflet";
+import {
+	MapContainer,
+	TileLayer,
+	Polygon,
+	Polyline,
+	useMap,
+} from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 
 import { CardDropdownMenu } from "@/components/dropdown-menu-demo";
@@ -32,6 +38,12 @@ interface Dam extends Node {
 interface MapVisualsProps {
 	dams: Dam[];
 }
+
+let map;
+const MapRelocation = () => {
+	map = useMap();
+	return null;
+};
 
 const MapVisuals = ({ dams }: MapVisualsProps) => {
 	const [year, setYear] = React.useState(2015);
@@ -68,6 +80,15 @@ const MapVisuals = ({ dams }: MapVisualsProps) => {
 		setIsCardVisible(false);
 	};
 
+	const [gotoDamLocation, setGotoDamLocation] = useState("");
+
+	const handleGotoDamLocationSelect = () => {
+		const dam = dams.find((dam) => dam.id === gotoDamLocation);
+		if (dam) {
+			map.flyTo([dam.latitude, dam.longitude], 13);
+		}
+	};
+
 	return (
 		<div className="relative h-screen w-screen overflow-hidden">
 			{selectedMap == "3" && (
@@ -93,7 +114,16 @@ const MapVisuals = ({ dams }: MapVisualsProps) => {
 					style={{ zIndex: 100000 }}
 					className="absolute left-5 bottom-5"
 				>
-					<ComboboxDemo />
+					<ComboboxDemo
+						options={dams}
+						onChange={setGotoDamLocation}
+					/>
+					<Button
+						className="ml-1"
+						onClick={handleGotoDamLocationSelect}
+					>
+						Избери
+					</Button>
 				</div>
 			)}
 
@@ -104,7 +134,10 @@ const MapVisuals = ({ dams }: MapVisualsProps) => {
 				>
 					<div className="bg-white p-4 rounded shadow-lg">
 						<h2 className="mb-4 text-center">Избери град</h2>
-						<ComboboxDemo />
+						<ComboboxDemo
+							options={dams}
+							onChange={setGotoDamLocation}
+						/>
 						<div className="mt-4 text-center">
 							<Button onClick={handlePopupClose}>Избери</Button>
 						</div>
@@ -168,6 +201,7 @@ const MapVisuals = ({ dams }: MapVisualsProps) => {
 						]}
 					/>
 				)}
+				<MapRelocation />
 			</MapContainer>
 		</div>
 	);

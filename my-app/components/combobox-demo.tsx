@@ -19,35 +19,7 @@ import {
 	PopoverTrigger,
 } from "@/components/ui/popover";
 
-const frameworks = [
-	{ value: "next.js", label: "Next.js" },
-	{ value: "sveltekit", label: "SvelteKit" },
-	{ value: "nuxt.js", label: "Nuxt.js" },
-	{ value: "remix", label: "Remix" },
-	{ value: "astro", label: "Astro" },
-	{ value: "react", label: "React" },
-	{ value: "vue", label: "Vue.js" },
-	{ value: "angular", label: "Angular" },
-	{ value: "ember", label: "Ember.js" },
-	{ value: "svelte", label: "Svelte" },
-	{ value: "gatsby", label: "Gatsby" },
-	{ value: "eleventy", label: "Eleventy" },
-	{ value: "preact", label: "Preact" },
-	{ value: "solid", label: "SolidJS" },
-	{ value: "qwik", label: "Qwik" },
-	{ value: "vite", label: "Vite" },
-	{ value: "nest", label: "NestJS" },
-	{ value: "express", label: "Express.js" },
-	{ value: "fastify", label: "Fastify" },
-	{ value: "meteor", label: "Meteor" },
-	{ value: "redwood", label: "RedwoodJS" },
-	{ value: "blitz", label: "Blitz.js" },
-	{ value: "alpinejs", label: "Alpine.js" },
-	{ value: "htmx", label: "HTMX" },
-	{ value: "lit", label: "Lit" },
-];
-
-export function ComboboxDemo() {
+export function ComboboxDemo({ options, onChange }) {
 	const [open, setOpen] = React.useState(false);
 	const [value, setValue] = React.useState("");
 
@@ -61,31 +33,46 @@ export function ComboboxDemo() {
 					className="w-[250px] justify-between"
 				>
 					{value
-						? frameworks.find((framework) => framework.value === value)?.label
-						: "Select framework..."}
+						? options.find((option) => option.id === value)
+								?.display_name
+						: "Потърси язовир..."}
 					<ChevronsUpDown className="opacity-50" />
 				</Button>
 			</PopoverTrigger>
-			<PopoverContent className="w-[250px] p-0" align="start" sideOffset={5}>
+			<PopoverContent
+				className="w-[250px] p-0"
+				align="start"
+				sideOffset={5}
+			>
 				<Command>
-					<CommandInput placeholder="Search framework..." className="h-9" />
+					<CommandInput
+						placeholder="Потърси язовир..."
+						className="h-9"
+					/>
 					<CommandList>
-						<CommandEmpty>No framework found.</CommandEmpty>
+						<CommandEmpty>Няма намерени язовири.</CommandEmpty>
 						<CommandGroup>
-							{frameworks.map((framework) => (
+							{options.map((option) => (
 								<CommandItem
-									key={framework.value}
-									value={framework.value}
+									key={option.id}
+									value={option.id}
 									onSelect={(currentValue) => {
-										setValue(currentValue === value ? "" : currentValue);
+										setValue(
+											currentValue === value
+												? ""
+												: currentValue,
+										);
 										setOpen(false);
+										onChange(currentValue);
 									}}
 								>
-									{framework.label}
+									{option.display_name}
 									<Check
 										className={cn(
 											"ml-auto",
-											value === framework.value ? "opacity-100" : "opacity-0",
+											value === option.value
+												? "opacity-100"
+												: "opacity-0",
 										)}
 									/>
 								</CommandItem>
