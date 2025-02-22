@@ -42,9 +42,7 @@ pip-compile requirements.in  # or requirements-dev.in
 Next, you can run `pip-sync` to install the new dependencies.
 
 ```bash
-pip-sync
-# or
-pip-sync requirements-dev.in
+pip-sync requirements.txt requirements-dev.txt
 ```
 
 ## Running the Application
@@ -78,6 +76,44 @@ To format and sort the imports:
 black .
 isort .
 ```
+
+## Database Migrations
+
+This service uses Alembic for database migrations. Here are the common commands:
+
+### First Time Setup
+
+If you have an existing database and want to start using migrations:
+
+```bash
+# Mark the current database state as migrated
+alembic stamp head
+```
+
+### Common Commands
+
+```bash
+# Create a new migration
+alembic revision --autogenerate -m "Description of changes"
+
+# Apply all pending migrations
+alembic upgrade head
+
+# Rollback last migration
+alembic downgrade -1
+
+# See current migration status
+alembic current
+
+# See migration history
+alembic history
+```
+
+### Notes
+
+- Always review auto-generated migrations before applying them
+- The database URL is read from the `DATABASE_URL` environment variable
+- Migrations are stored in `migrations/versions/`
 
 ## Data Model
 
