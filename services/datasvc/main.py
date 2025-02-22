@@ -1,11 +1,10 @@
-from typing import List
 from uuid import UUID
 
 from fastapi import Depends, FastAPI, HTTPException
 from sqlalchemy.orm import Session
 
 import models
-import services.datasvc.schema as schema
+import schema
 from database import engine, get_db
 
 # Create tables
@@ -24,7 +23,7 @@ def create_node(node: schema.NodeCreate, db: Session = Depends(get_db)):
     return db_node
 
 
-@app.get("/nodes", response_model=List[schema.Node])
+@app.get("/nodes", response_model=list[schema.Node])
 def read_nodes(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     return db.query(models.Node).offset(skip).limit(limit).all()
 
@@ -47,7 +46,7 @@ def create_dam(dam: schema.DamCreate, node_id: UUID, db: Session = Depends(get_d
     return db_dam
 
 
-@app.get("/dams", response_model=List[schema.Dam])
+@app.get("/dams", response_model=list[schema.Dam])
 def read_dams(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     return db.query(models.Dam).offset(skip).limit(limit).all()
 
@@ -70,7 +69,7 @@ def create_place(place: schema.PlaceCreate, node_id: UUID, db: Session = Depends
     return db_place
 
 
-@app.get("/places", response_model=List[schema.Place])
+@app.get("/places", response_model=list[schema.Place])
 def read_places(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     return db.query(models.Place).offset(skip).limit(limit).all()
 
@@ -93,7 +92,7 @@ def create_connection(connection: schema.WaterConnectionCreate, db: Session = De
     return db_connection
 
 
-@app.get("/connections", response_model=List[schema.WaterConnection])
+@app.get("/connections", response_model=list[schema.WaterConnection])
 def read_connections(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     return db.query(models.WaterConnection).offset(skip).limit(limit).all()
 
@@ -120,7 +119,7 @@ def create_measurement(
     return db_measurement
 
 
-@app.get("/measurements", response_model=List[schema.DamBulletinMeasurement])
+@app.get("/measurements", response_model=list[schema.DamBulletinMeasurement])
 def read_measurements(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     return db.query(models.DamBulletinMeasurement).offset(skip).limit(limit).all()
 
@@ -135,7 +134,7 @@ def create_satellite_image(image: schema.SatelliteImageCreate, db: Session = Dep
     return db_image
 
 
-@app.get("/satellite-images", response_model=List[schema.SatelliteImage])
+@app.get("/satellite-images", response_model=list[schema.SatelliteImage])
 def read_satellite_images(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     return db.query(models.SatelliteImage).offset(skip).limit(limit).all()
 
@@ -150,7 +149,7 @@ def create_bill_form(form: schema.UserBillFormCreate, db: Session = Depends(get_
     return db_form
 
 
-@app.get("/bill-forms", response_model=List[schema.UserBillForm])
+@app.get("/bill-forms", response_model=list[schema.UserBillForm])
 def read_bill_forms(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     return db.query(models.UserBillForm).offset(skip).limit(limit).all()
 
@@ -167,7 +166,7 @@ def create_subscription(
     return db_subscription
 
 
-@app.get("/newsletter", response_model=List[schema.NewsletterSubscription])
+@app.get("/newsletter", response_model=list[schema.NewsletterSubscription])
 def read_subscriptions(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     return db.query(models.NewsletterSubscription).offset(skip).limit(limit).all()
 
@@ -182,7 +181,7 @@ def create_alert(alert: schema.DamAlertCreate, db: Session = Depends(get_db)):
     return db_alert
 
 
-@app.get("/alerts", response_model=List[schema.DamAlert])
+@app.get("/alerts", response_model=list[schema.DamAlert])
 def read_alerts(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     return db.query(models.DamAlert).offset(skip).limit(limit).all()
 
