@@ -12,31 +12,16 @@ import "leaflet/dist/leaflet.css";
 
 import { CardDropdownMenu } from "@/components/dropdown-menu-demo";
 import { SliderDemo } from "@/components/slider-demo";
+import { SliderTime } from "@/components/slider-time";
+import TimeRecord from "@/interfaces/time-record.interface";
+import Dam from "@/interfaces/dam.interface";
+
 import { Card } from "@/components/ui/card";
 import { ComboboxDemo } from "@/components/combobox-demo";
 import { Button } from "@/components/ui/button";
 
 import GetAddress from "@/components/get-address";
 import Address from "@/interfaces/address.interface";
-
-interface Node {
-	id: string;
-	display_name: string;
-	latitude: number;
-	longitude: number;
-	node_type: string;
-	created_at: string;
-	updated_at: string;
-}
-
-interface Dam extends Node {
-	border_geometry: {
-		type: string;
-		coordinates: [number, number][];
-	};
-	max_volume: number;
-	description: string;
-}
 
 interface MapVisualsProps {
 	dams: Dam[];
@@ -49,7 +34,10 @@ const MapRelocation = () => {
 };
 
 const MapVisuals = ({ dams }: MapVisualsProps) => {
-	const [year, setYear] = React.useState(2015);
+	const [time, setTime] = useState<TimeRecord>({
+		year: 2025,
+		month: "Февруари",
+	});
 	const [isCardVisible, setIsCardVisible] = useState(false);
 	const [isAddressPopupVisible, setIsAddressPopupVisible] = useState(false);
 	const [selectedDam, setSelectedDam] = useState<Dam | null>(null);
@@ -97,11 +85,9 @@ const MapVisuals = ({ dams }: MapVisualsProps) => {
 			{selectedMap == "3" && (
 				<div
 					className="absolute top-0 left-1/2 transform -translate-x-1/2 text-xl"
-					style={{
-						zIndex: 100000,
-					}}
+					style={{ zIndex: 100000 }}
 				>
-					<SliderDemo value={year} onChange={setYear} />
+					<SliderTime value={time} onChange={setTime} />
 				</div>
 			)}
 
