@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session, aliased
 from . import models
 from . import schema
 from .database import engine, get_db
+from .utils import calculate_spherical_distance
 
 # Create tables
 models.Base.metadata.create_all(bind=engine)
@@ -360,6 +361,55 @@ def read_junction(junction_id: UUID, db: Session = Depends(get_db)):
         "created_at": node.created_at,
         "updated_at": node.updated_at,
     }
+
+
+# Edge endpoints
+@app.post("/edges", response_model=schema.Edge)
+def create_edge(edge: schema.EdgeCreate, db: Session = Depends(get_db)):
+    try:
+        # Get source and target nodes to calculate distance
+        source_node = db.query(models.Node).filter(models.Node.id == edge.source_node_id).first()
+        target_node = db.query(models.Node).filter(models.Node.id == edge.target_node_id).first()
+        
+        if not source_node or not target_node:
+            raise HTTPException(status_code=404, detail="Source or target node not found")
+        
+        # Calculate distance in meters
+        distance_km = calculate_spherical_distance(
+            float(source_node.latitude),
+            float(source_node.longitude),
+            float(target_node.latitude),
+            float(target_node.longitude)
+        )
+        distance_meters = distance_km * 1000  # Convert to meters
+        
+        # Create edge
+        db_edge = models.Edge(
+            source_node_id=edge.source_node_id,
+            target_node_id=edge.target_node_id,
+            distance=distance_meters,
+            description=edge.description
+        )
+        db.add(db_edge)
+        db.commit()
+        db.refresh(db_edge)
+        return db_edge
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/edges", response_model=list[schema.Edge])
+def read_edges(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    return db.query(models.Edge).offset(skip).limit(limit).all()
+
+
+@app.get("/edges/{edge_id}", response_model=schema.Edge)
+def read_edge(edge_id: UUID, db: Session = Depends(get_db)):
+    db_edge = db.query(models.Edge).filter(models.Edge.id == edge_id).first()
+    if db_edge is None:
+        raise HTTPException(status_code=404, detail="Edge not found")
+    return db_edge
 
 
 # Dam Bulletin Measurement endpoints
