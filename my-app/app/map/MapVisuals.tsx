@@ -167,11 +167,12 @@ const MapVisuals = ({ dams }: MapVisualsProps) => {
 
 			<MapContainer
 				center={
-					dams
-						? [dams[0].latitude, dams[0].longitude]
-						: [42.4633, 23.6122]
+					// dams
+					// ? [dams[0].latitude, dams[0].longitude]
+					// : [42.4633, 23.6122]
+					[43.0436, 26.7511]
 				}
-				zoom={8}
+				zoom={13}
 				className="h-full w-full z-0"
 			>
 				<TileLayer
@@ -197,6 +198,13 @@ const MapVisuals = ({ dams }: MapVisualsProps) => {
 							[42.43967, 23.63365],
 							[42.51703, 23.53495],
 						]}
+					/>
+				)}
+				{selectedMap == "3" && (
+					<TileLayer
+						url={`http://localhost:8001/tiles/dam1/${year}/1/{z}/{x}/{y}.png`}
+						crossOrigin={true} // Ensure cross-origin requests work
+						attribution="Custom Tile Server"
 					/>
 				)}
 				<MapRelocation />
