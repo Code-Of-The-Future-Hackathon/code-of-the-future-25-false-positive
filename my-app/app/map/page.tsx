@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { MapContainer, TileLayer, Polygon, Polyline } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -9,6 +9,9 @@ import { SliderDemo } from "@/components/slider-demo";
 import { Card } from "@/components/ui/card";
 import { ComboboxDemo } from "@/components/combobox-demo";
 import { Button } from "@/components/ui/button";
+
+import GetAddress from "@/components/get-address";
+import Address from "@/interfaces/address.interface";
 
 interface Node {
 	id: string;
@@ -65,17 +68,14 @@ const MapPage = () => {
 
 	const [year, setYear] = React.useState(2015);
 	const [isCardVisible, setIsCardVisible] = useState(false);
-	const [isPopupVisible, setIsPopupVisible] = useState(false);
+	const [isAddressPopupVisible, setIsAddressPopupVisible] = useState(false);
 	const [selectedDam, setSelectedDam] = useState<Dam | null>(null);
 	const [selectedMap, setSelectedMap] = useState("1");
+	const [userAddress, setUserAddress] = useState<Address | null>(null);
 
-	React.useEffect(() => {
-		if (selectedMap === "2") {
-			setIsPopupVisible(true);
-		} else {
-			setIsPopupVisible(false);
-		}
-	}, [selectedMap]);
+	const handleUserAddressSelect = (address: Address) => {
+		setUserAddress(address);
+	};
 
 	const handleDamClick = (dam: Dam) => {
 		setIsCardVisible(true);
@@ -86,16 +86,19 @@ const MapPage = () => {
 		setIsCardVisible(false);
 	};
 
-	const handlePopupClose = () => {
-		setIsPopupVisible(false);
-		//TODO: set selected dam and update map
-	};
-
 	const handleMapSelect = (value: string) => {
 		setSelectedMap(value);
 		setSelectedDam(null);
 		setIsCardVisible(false);
 	};
+
+	const handleSearchRoute = () => {
+		setIsAddressPopupVisible(false);
+	};
+
+	useEffect(() => {
+		setIsAddressPopupVisible(selectedMap === "2");
+	}, [selectedMap]);
 
 	return (
 		<div className="relative h-screen w-screen overflow-hidden">
@@ -120,19 +123,13 @@ const MapPage = () => {
 				</div>
 			)}
 
-			{isPopupVisible && (
-				<div
-					className="absolute top-0 left-0 w-full h-full flex items-center justify-center bg-black bg-opacity-50"
-					style={{ zIndex: 1 }}
-				>
-					<div className="bg-white p-4 rounded shadow-lg">
-						<h2 className="mb-4 text-center">Избери град</h2>
-						<ComboboxDemo />
-						<div className="mt-4 text-center">
-							<Button onClick={handlePopupClose}>Избери</Button>
-						</div>
-					</div>
-				</div>
+			{isAddressPopupVisible && (
+				<>
+					<GetAddress
+						onAddressSelect={handleUserAddressSelect}
+						onClose={handleSearchRoute}
+					/>
+				</>
 			)}
 
 			<div
