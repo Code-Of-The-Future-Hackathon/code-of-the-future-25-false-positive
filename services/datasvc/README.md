@@ -23,6 +23,30 @@ pip install -r requirements.txt
 DATABASE_URL=postgresql://user:password@localhost:5432/dbname
 ```
 
+## Adding new dependencies
+
+This project uses `pip-tools` to manage dependencies. Install it in the `venv` with:
+
+```bash
+pip install pip-tools
+```
+
+Add the name of the package to the `requirements.in` file. (`requirements-dev.in` for development dependencies)
+
+Then run `pip-compile` to update the `requirements.txt` file.
+
+```bash
+pip-compile requirements.in  # or requirements-dev.in
+```
+
+Next, you can run `pip-sync` to install the new dependencies.
+
+```bash
+pip-sync
+# or
+pip-sync requirements-dev.in
+```
+
 ## Running the Application
 
 Start the application with:
@@ -37,6 +61,23 @@ The API will be available at `http://localhost:8000`
 
 - Swagger UI: `http://localhost:8000/docs`
 - ReDoc: `http://localhost:8000/redoc`
+
+## Running lints and formatting
+
+Make sure you have installed the dev dependencies (see [Setup](#setup)).
+
+To lint using `flake8`:
+
+```bash
+flake8
+```
+
+To format and sort the imports:
+
+```bash
+black .
+isort .
+```
 
 ## Data Model
 
