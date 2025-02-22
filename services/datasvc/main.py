@@ -51,6 +51,12 @@ def create_dam(dam: schema.DamCreate, db: Session = Depends(get_db)):
             max_volume=dam.max_volume,
             description=dam.description
         )
+        
+        # Add places if any
+        if dam.place_ids:
+            places = db.query(models.Place).filter(models.Place.id.in_(dam.place_ids)).all()
+            db_dam.places = places
+            
         db.add(db_dam)
         
         # Commit both records in a single transaction
@@ -65,7 +71,9 @@ def create_dam(dam: schema.DamCreate, db: Session = Depends(get_db)):
             "latitude": db_node.latitude,
             "longitude": db_node.longitude,
             "created_at": db_node.created_at,
-            "updated_at": db_node.updated_at
+            "updated_at": db_node.updated_at,
+            "places": [{"id": place.id, "display_name": db.query(models.Node).get(place.id).display_name} 
+                      for place in db_dam.places]
         }
     except Exception as e:
         db.rollback()
@@ -89,6 +97,8 @@ def read_dams(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
             "longitude": node.longitude,
             "created_at": node.created_at,
             "updated_at": node.updated_at,
+            "places": [{"id": place.id, "display_name": db.query(models.Node).get(place.id).display_name} 
+                      for place in dam.places]
         }
         for dam, node in dams
     ]
@@ -112,6 +122,8 @@ def read_dam(dam_id: UUID, db: Session = Depends(get_db)):
         "longitude": node.longitude,
         "created_at": node.created_at,
         "updated_at": node.updated_at,
+        "places": [{"id": place.id, "display_name": db.query(models.Node).get(place.id).display_name} 
+                  for place in dam.places]
     }
 
 

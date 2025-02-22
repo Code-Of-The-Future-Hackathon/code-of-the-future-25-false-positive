@@ -37,6 +37,14 @@ class Node(NodeBase):
         from_attributes = True
 
 
+class PlaceRef(BaseModel):
+    id: UUID4
+    display_name: str
+
+    class Config:
+        from_attributes = True
+
+
 class DamBase(BaseModel):
     model_config = {"arbitrary_types_allowed": True}
     
@@ -46,14 +54,15 @@ class DamBase(BaseModel):
     )
     max_volume: Decimal
     description: str = ""
+    municipality: str = ""
 
 
 class DamCreate(DamBase, NodeFieldsMixin):
-    pass
+    place_ids: list[UUID4] = Field(default_factory=list)
 
 
 class Dam(DamBase, NodeResponseMixin):
-    pass
+    places: list[PlaceRef] = Field(default_factory=list)
 
 
 class PlaceBase(BaseModel):
@@ -62,6 +71,7 @@ class PlaceBase(BaseModel):
     water_price: Decimal
     non_dam_incoming_flow: Decimal
     radius: Decimal
+    municipality: str = ""
 
 
 class PlaceCreate(PlaceBase, NodeFieldsMixin):

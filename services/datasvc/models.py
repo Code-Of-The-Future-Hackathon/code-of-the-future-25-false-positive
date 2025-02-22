@@ -1,9 +1,10 @@
 import uuid
 
 from geoalchemy2 import Geometry
-from sqlalchemy import Column, Date, DateTime, Enum, Float, ForeignKey, Integer, String, Text, Numeric
+from sqlalchemy import Column, Date, DateTime, Enum, Float, ForeignKey, Integer, String, Text, Numeric, Table
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.sql import func
+from sqlalchemy.orm import relationship
 
 from database import Base
 
@@ -23,6 +24,15 @@ class Node(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
 
+# Association table for dam-place relationship
+dam_places = Table(
+    "dam_places",
+    Base.metadata,
+    Column("dam_id", UUID(as_uuid=True), ForeignKey("false_positive.dams.id"), primary_key=True),
+    Column("place_id", UUID(as_uuid=True), ForeignKey("false_positive.places.id"), primary_key=True),
+    schema="false_positive"
+)
+
 class Dam(Base):
     __tablename__ = "dams"
     __table_args__ = {"schema": "false_positive"}
@@ -31,6 +41,10 @@ class Dam(Base):
     border_geometry = Column(JSONB)  # GeoJSON MultiPolygon
     max_volume = Column(Numeric)  # m³
     description = Column(Text, server_default="")
+    municipality = Column(String, nullable=True)  # Municipality name
+    
+    # Relationship with places
+    places = relationship("Place", secondary=dam_places, backref="dams")
 
 
 class Place(Base):
