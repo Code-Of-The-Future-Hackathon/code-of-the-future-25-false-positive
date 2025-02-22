@@ -37,6 +37,26 @@ class Node(NodeBase):
         from_attributes = True
 
 
+class EdgeBase(BaseModel):
+    source_node_id: UUID4
+    target_node_id: UUID4
+    description: Optional[str] = None
+
+
+class EdgeCreate(EdgeBase):
+    pass
+
+
+class Edge(EdgeBase):
+    id: UUID4
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+    distance: Decimal
+
+    class Config:
+        from_attributes = True
+
+
 class PlaceRef(BaseModel):
     id: UUID4
     display_name: str

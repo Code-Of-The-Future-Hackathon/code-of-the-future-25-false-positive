@@ -24,6 +24,23 @@ class Node(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
 
+class Edge(Base):
+    __tablename__ = "edges"
+    __table_args__ = {"schema": "false_positive"}
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    source_node_id = Column(
+        UUID(as_uuid=True), ForeignKey("false_positive.nodes.id"), nullable=False
+    )
+    target_node_id = Column(
+        UUID(as_uuid=True), ForeignKey("false_positive.nodes.id"), nullable=False
+    )
+    distance = Column(Numeric, nullable=False)  # meters
+    description = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
 # Association table for dam-place relationship
 dam_places = Table(
     "dam_places",
