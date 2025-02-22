@@ -55,6 +55,10 @@ class DamBase(BaseModel):
     max_volume: Decimal
     description: str = ""
     municipality: str = ""
+    owner: Optional[str] = None
+    owner_contact: Optional[str] = None
+    operator: Optional[str] = None
+    operator_contact: Optional[str] = None
 
 
 class DamCreate(DamBase, NodeFieldsMixin):

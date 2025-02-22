@@ -42,6 +42,10 @@ class Dam(Base):
     max_volume = Column(Numeric)  # m³
     description = Column(Text, server_default="")
     municipality = Column(String, nullable=False)  # Municipality name
+    owner = Column(String, nullable=True)
+    owner_contact = Column(String, nullable=True)
+    operator = Column(String, nullable=True)
+    operator_contact = Column(String, nullable=True)
     
     # Relationship with places
     places = relationship("Place", secondary=dam_places, backref="dams")
@@ -57,6 +61,7 @@ class Place(Base):
     water_price = Column(Numeric)  # BGN/m³
     non_dam_incoming_flow = Column(Numeric)  # m³/s
     radius = Column(Numeric)  # meters
+    municipality = Column(String, nullable=False)  # Municipality name
 
 
 class Junction(Base):

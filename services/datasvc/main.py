@@ -50,7 +50,11 @@ def create_dam(dam: schema.DamCreate, db: Session = Depends(get_db)):
             border_geometry=dam.border_geometry,
             max_volume=dam.max_volume,
             description=dam.description,
-            municipality=dam.municipality
+            municipality=dam.municipality,
+            owner=dam.owner,
+            owner_contact=dam.owner_contact,
+            operator=dam.operator,
+            operator_contact=dam.operator_contact
         )
         
         # Add places if any
