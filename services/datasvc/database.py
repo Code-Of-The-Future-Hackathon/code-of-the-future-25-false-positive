@@ -1,7 +1,7 @@
 import os
 
 from dotenv import load_dotenv
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine, event, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
@@ -14,7 +14,7 @@ if not DATABASE_URL:
 engine = create_engine(DATABASE_URL)
 
 with engine.connect() as connection:
-    connection.execute("CREATE SCHEMA IF NOT EXISTS false_positive")
+    connection.execute(text("CREATE SCHEMA IF NOT EXISTS false_positive"))
     connection.commit()
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
