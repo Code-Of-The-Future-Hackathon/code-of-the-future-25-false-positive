@@ -166,8 +166,12 @@ const MapVisuals = ({ dams }: MapVisualsProps) => {
 			</div>
 
 			<MapContainer
-				center={[42.4633, 23.6122]}
-				zoom={13}
+				center={
+					dams
+						? [dams[0].latitude, dams[0].longitude]
+						: [42.4633, 23.6122]
+				}
+				zoom={8}
 				className="h-full w-full z-0"
 			>
 				<TileLayer
