@@ -1,0 +1,195 @@
+from typing import List
+from uuid import UUID
+
+from fastapi import Depends, FastAPI, HTTPException
+from sqlalchemy.orm import Session
+
+import models
+import schemas
+from database import engine, get_db
+
+# Create tables
+models.Base.metadata.create_all(bind=engine)
+
+app = FastAPI(title="Water Network API")
+
+
+# Node endpoints
+@app.post("/nodes", response_model=schemas.Node)
+def create_node(node: schemas.NodeCreate, db: Session = Depends(get_db)):
+    db_node = models.Node(**node.model_dump())
+    db.add(db_node)
+    db.commit()
+    db.refresh(db_node)
+    return db_node
+
+
+@app.get("/nodes", response_model=List[schemas.Node])
+def read_nodes(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    return db.query(models.Node).offset(skip).limit(limit).all()
+
+
+@app.get("/nodes/{node_id}", response_model=schemas.Node)
+def read_node(node_id: UUID, db: Session = Depends(get_db)):
+    db_node = db.query(models.Node).filter(models.Node.id == node_id).first()
+    if db_node is None:
+        raise HTTPException(status_code=404, detail="Node not found")
+    return db_node
+
+
+# Dam endpoints
+@app.post("/dams", response_model=schemas.Dam)
+def create_dam(dam: schemas.DamCreate, node_id: UUID, db: Session = Depends(get_db)):
+    db_dam = models.Dam(id=node_id, **dam.model_dump())
+    db.add(db_dam)
+    db.commit()
+    db.refresh(db_dam)
+    return db_dam
+
+
+@app.get("/dams", response_model=List[schemas.Dam])
+def read_dams(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    return db.query(models.Dam).offset(skip).limit(limit).all()
+
+
+@app.get("/dams/{dam_id}", response_model=schemas.Dam)
+def read_dam(dam_id: UUID, db: Session = Depends(get_db)):
+    db_dam = db.query(models.Dam).filter(models.Dam.id == dam_id).first()
+    if db_dam is None:
+        raise HTTPException(status_code=404, detail="Dam not found")
+    return db_dam
+
+
+# Place endpoints
+@app.post("/places", response_model=schemas.Place)
+def create_place(place: schemas.PlaceCreate, node_id: UUID, db: Session = Depends(get_db)):
+    db_place = models.Place(id=node_id, **place.model_dump())
+    db.add(db_place)
+    db.commit()
+    db.refresh(db_place)
+    return db_place
+
+
+@app.get("/places", response_model=List[schemas.Place])
+def read_places(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    return db.query(models.Place).offset(skip).limit(limit).all()
+
+
+@app.get("/places/{place_id}", response_model=schemas.Place)
+def read_place(place_id: UUID, db: Session = Depends(get_db)):
+    db_place = db.query(models.Place).filter(models.Place.id == place_id).first()
+    if db_place is None:
+        raise HTTPException(status_code=404, detail="Place not found")
+    return db_place
+
+
+# Water Connection endpoints
+@app.post("/connections", response_model=schemas.WaterConnection)
+def create_connection(connection: schemas.WaterConnectionCreate, db: Session = Depends(get_db)):
+    db_connection = models.WaterConnection(**connection.model_dump())
+    db.add(db_connection)
+    db.commit()
+    db.refresh(db_connection)
+    return db_connection
+
+
+@app.get("/connections", response_model=List[schemas.WaterConnection])
+def read_connections(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    return db.query(models.WaterConnection).offset(skip).limit(limit).all()
+
+
+@app.get("/connections/{connection_id}", response_model=schemas.WaterConnection)
+def read_connection(connection_id: UUID, db: Session = Depends(get_db)):
+    db_connection = (
+        db.query(models.WaterConnection).filter(models.WaterConnection.id == connection_id).first()
+    )
+    if db_connection is None:
+        raise HTTPException(status_code=404, detail="Connection not found")
+    return db_connection
+
+
+# Dam Bulletin Measurement endpoints
+@app.post("/measurements", response_model=schemas.DamBulletinMeasurement)
+def create_measurement(
+    measurement: schemas.DamBulletinMeasurementCreate, db: Session = Depends(get_db)
+):
+    db_measurement = models.DamBulletinMeasurement(**measurement.model_dump())
+    db.add(db_measurement)
+    db.commit()
+    db.refresh(db_measurement)
+    return db_measurement
+
+
+@app.get("/measurements", response_model=List[schemas.DamBulletinMeasurement])
+def read_measurements(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    return db.query(models.DamBulletinMeasurement).offset(skip).limit(limit).all()
+
+
+# Satellite Image endpoints
+@app.post("/satellite-images", response_model=schemas.SatelliteImage)
+def create_satellite_image(image: schemas.SatelliteImageCreate, db: Session = Depends(get_db)):
+    db_image = models.SatelliteImage(**image.model_dump())
+    db.add(db_image)
+    db.commit()
+    db.refresh(db_image)
+    return db_image
+
+
+@app.get("/satellite-images", response_model=List[schemas.SatelliteImage])
+def read_satellite_images(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    return db.query(models.SatelliteImage).offset(skip).limit(limit).all()
+
+
+# User Bill Form endpoints
+@app.post("/bill-forms", response_model=schemas.UserBillForm)
+def create_bill_form(form: schemas.UserBillFormCreate, db: Session = Depends(get_db)):
+    db_form = models.UserBillForm(**form.model_dump())
+    db.add(db_form)
+    db.commit()
+    db.refresh(db_form)
+    return db_form
+
+
+@app.get("/bill-forms", response_model=List[schemas.UserBillForm])
+def read_bill_forms(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    return db.query(models.UserBillForm).offset(skip).limit(limit).all()
+
+
+# Newsletter Subscription endpoints
+@app.post("/newsletter", response_model=schemas.NewsletterSubscription)
+def create_subscription(
+    subscription: schemas.NewsletterSubscriptionCreate, db: Session = Depends(get_db)
+):
+    db_subscription = models.NewsletterSubscription(**subscription.model_dump())
+    db.add(db_subscription)
+    db.commit()
+    db.refresh(db_subscription)
+    return db_subscription
+
+
+@app.get("/newsletter", response_model=List[schemas.NewsletterSubscription])
+def read_subscriptions(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    return db.query(models.NewsletterSubscription).offset(skip).limit(limit).all()
+
+
+# Dam Alert endpoints
+@app.post("/alerts", response_model=schemas.DamAlert)
+def create_alert(alert: schemas.DamAlertCreate, db: Session = Depends(get_db)):
+    db_alert = models.DamAlert(**alert.model_dump())
+    db.add(db_alert)
+    db.commit()
+    db.refresh(db_alert)
+    return db_alert
+
+
+@app.get("/alerts", response_model=List[schemas.DamAlert])
+def read_alerts(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    return db.query(models.DamAlert).offset(skip).limit(limit).all()
+
+
+@app.get("/alerts/{alert_id}", response_model=schemas.DamAlert)
+def read_alert(alert_id: UUID, db: Session = Depends(get_db)):
+    db_alert = db.query(models.DamAlert).filter(models.DamAlert.id == alert_id).first()
+    if db_alert is None:
+        raise HTTPException(status_code=404, detail="Alert not found")
+    return db_alert
