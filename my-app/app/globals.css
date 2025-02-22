@@ -120,5 +120,11 @@ body {
 	}
 	body {
 		@apply bg-background text-foreground;
+		/* TO DO : Change this */
+		/* font-family: "Noto Sans Mono", sans-serif; */
+	}
+	h1 {
+		font-family: "Rubik Mono One", sans-serif;
+		@apply text-4xl font-normal leading-tight;
 	}
 }
