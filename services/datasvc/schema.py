@@ -5,15 +5,27 @@ from typing import Literal, Optional, Dict, Any
 from pydantic import UUID4, BaseModel, EmailStr, Field
 
 
-class NodeBase(BaseModel):
+class NodeFieldsMixin(BaseModel):
     display_name: str
     latitude: Decimal
     longitude: Decimal
+
+
+class NodeBase(NodeFieldsMixin):
     node_type: Literal["dam", "place", "junction"]
 
 
 class NodeCreate(NodeBase):
     pass
+
+
+class NodeResponseMixin(NodeFieldsMixin):
+    id: UUID4
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
 
 
 class Node(NodeBase):
@@ -36,15 +48,12 @@ class DamBase(BaseModel):
     description: str = ""
 
 
-class DamCreate(DamBase):
+class DamCreate(DamBase, NodeFieldsMixin):
     pass
 
 
-class Dam(DamBase):
-    id: UUID4
-
-    class Config:
-        from_attributes = True
+class Dam(DamBase, NodeResponseMixin):
+    pass
 
 
 class PlaceBase(BaseModel):
@@ -55,36 +64,28 @@ class PlaceBase(BaseModel):
     radius: Decimal
 
 
-class PlaceCreate(PlaceBase):
+class PlaceCreate(PlaceBase, NodeFieldsMixin):
     pass
 
 
-class Place(PlaceBase):
-    id: UUID4
-
-    class Config:
-        from_attributes = True
+class Place(PlaceBase, NodeResponseMixin):
+    pass
 
 
-class WaterConnectionBase(BaseModel):
-    source_node_id: UUID4
-    target_node_id: UUID4
+class JunctionBase(BaseModel):
     max_flow_rate: Decimal
     current_flow_rate: Optional[Decimal] = None
     length: Decimal
+    source_node_id: UUID4
+    target_node_id: UUID4
 
 
-class WaterConnectionCreate(WaterConnectionBase):
+class JunctionCreate(JunctionBase, NodeFieldsMixin):
     pass
 
 
-class WaterConnection(WaterConnectionBase):
-    id: UUID4
-    created_at: datetime
-    updated_at: Optional[datetime] = None
-
-    class Config:
-        from_attributes = True
+class Junction(JunctionBase, NodeResponseMixin):
+    pass
 
 
 class DamBulletinMeasurementBase(BaseModel):

@@ -45,11 +45,11 @@ class Place(Base):
     radius = Column(Numeric)  # meters
 
 
-class WaterConnection(Base):
-    __tablename__ = "water_connections"
+class Junction(Base):
+    __tablename__ = "junctions"
     __table_args__ = {"schema": "false_positive"}
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(UUID(as_uuid=True), ForeignKey("false_positive.nodes.id"), primary_key=True)
     source_node_id = Column(
         UUID(as_uuid=True), ForeignKey("false_positive.nodes.id"), nullable=False
     )
@@ -59,8 +59,6 @@ class WaterConnection(Base):
     max_flow_rate = Column(Numeric)  # m³/s
     current_flow_rate = Column(Numeric, nullable=True)  # m³/s
     length = Column(Numeric)  # meters
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
 
 class DamBulletinMeasurement(Base):
