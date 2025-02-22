@@ -32,6 +32,7 @@
 - source_node_id (uuid FOREIGN KEY REFERENCES Node(id))
 - target_node_id (uuid FOREIGN KEY REFERENCES Node(id))
 - max_flow_rate (decimal) -- m³/s, maximum flow capacity
+- current_flow_rate (decimal, nullable) -- m³/s, current flow rate
 - length (decimal) -- meters
 - created_at (timestamp)
 - updated_at (timestamp)
