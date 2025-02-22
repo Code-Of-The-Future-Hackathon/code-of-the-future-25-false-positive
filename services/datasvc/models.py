@@ -41,7 +41,7 @@ class Dam(Base):
     border_geometry = Column(JSONB)  # GeoJSON MultiPolygon
     max_volume = Column(Numeric)  # m³
     description = Column(Text, server_default="")
-    municipality = Column(String, nullable=True)  # Municipality name
+    municipality = Column(String, nullable=False)  # Municipality name
     
     # Relationship with places
     places = relationship("Place", secondary=dam_places, backref="dams")

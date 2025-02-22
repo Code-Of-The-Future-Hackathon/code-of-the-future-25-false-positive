@@ -49,7 +49,8 @@ def create_dam(dam: schema.DamCreate, db: Session = Depends(get_db)):
             id=node_id,
             border_geometry=dam.border_geometry,
             max_volume=dam.max_volume,
-            description=dam.description
+            description=dam.description,
+            municipality=dam.municipality
         )
         
         # Add places if any
@@ -150,7 +151,8 @@ def create_place(place: schema.PlaceCreate, db: Session = Depends(get_db)):
             consumption_per_capita=place.consumption_per_capita,
             water_price=place.water_price,
             non_dam_incoming_flow=place.non_dam_incoming_flow,
-            radius=place.radius
+            radius=place.radius,
+            municipality=place.municipality
         )
         db.add(db_place)
         
