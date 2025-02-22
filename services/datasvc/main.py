@@ -1,4 +1,5 @@
 from uuid import UUID
+import uuid
 
 from fastapi import Depends, FastAPI, HTTPException
 from sqlalchemy.orm import Session
@@ -14,15 +15,6 @@ app = FastAPI(title="False Positive")
 
 
 # Node endpoints
-@app.post("/nodes", response_model=schema.Node)
-def create_node(node: schema.NodeCreate, db: Session = Depends(get_db)):
-    db_node = models.Node(**node.model_dump())
-    db.add(db_node)
-    db.commit()
-    db.refresh(db_node)
-    return db_node
-
-
 @app.get("/nodes", response_model=list[schema.Node])
 def read_nodes(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     return db.query(models.Node).offset(skip).limit(limit).all()
@@ -38,12 +30,39 @@ def read_node(node_id: UUID, db: Session = Depends(get_db)):
 
 # Dam endpoints
 @app.post("/dams", response_model=schema.Dam)
-def create_dam(dam: schema.DamCreate, node_id: UUID, db: Session = Depends(get_db)):
-    db_dam = models.Dam(id=node_id, **dam.model_dump())
+def create_dam(dam: schema.DamCreate, db: Session = Depends(get_db)):
+    # Create node first
+    node_id = uuid.uuid4()
+    db_node = models.Node(
+        id=node_id,
+        display_name=dam.display_name,
+        latitude=dam.latitude,
+        longitude=dam.longitude,
+        node_type="dam"
+    )
+    db.add(db_node)
+    
+    # Create dam with same ID
+    db_dam = models.Dam(
+        id=node_id,
+        border_geometry=dam.border_geometry,
+        max_volume=dam.max_volume,
+        description=dam.description
+    )
     db.add(db_dam)
+    
     db.commit()
     db.refresh(db_dam)
-    return db_dam
+    
+    # Return combined dam info
+    return {
+        **db_dam.__dict__,
+        "display_name": db_node.display_name,
+        "latitude": db_node.latitude,
+        "longitude": db_node.longitude,
+        "created_at": db_node.created_at,
+        "updated_at": db_node.updated_at
+    }
 
 
 @app.get("/dams", response_model=list[schema.Dam])
@@ -61,12 +80,41 @@ def read_dam(dam_id: UUID, db: Session = Depends(get_db)):
 
 # Place endpoints
 @app.post("/places", response_model=schema.Place)
-def create_place(place: schema.PlaceCreate, node_id: UUID, db: Session = Depends(get_db)):
-    db_place = models.Place(id=node_id, **place.model_dump())
+def create_place(place: schema.PlaceCreate, db: Session = Depends(get_db)):
+    # Create node first
+    node_id = uuid.uuid4()
+    db_node = models.Node(
+        id=node_id,
+        display_name=place.display_name,
+        latitude=place.latitude,
+        longitude=place.longitude,
+        node_type="place"
+    )
+    db.add(db_node)
+    
+    # Create place with same ID
+    db_place = models.Place(
+        id=node_id,
+        population=place.population,
+        consumption_per_capita=place.consumption_per_capita,
+        water_price=place.water_price,
+        non_dam_incoming_flow=place.non_dam_incoming_flow,
+        radius=place.radius
+    )
     db.add(db_place)
+    
     db.commit()
     db.refresh(db_place)
-    return db_place
+    
+    # Return combined place info
+    return {
+        **db_place.__dict__,
+        "display_name": db_node.display_name,
+        "latitude": db_node.latitude,
+        "longitude": db_node.longitude,
+        "created_at": db_node.created_at,
+        "updated_at": db_node.updated_at
+    }
 
 
 @app.get("/places", response_model=list[schema.Place])

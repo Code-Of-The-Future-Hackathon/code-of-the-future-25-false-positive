@@ -1,6 +1,6 @@
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Literal, Optional
+from typing import Literal, Optional, Dict, Any
 
 from pydantic import UUID4, BaseModel, EmailStr, Field
 
@@ -28,9 +28,9 @@ class Node(NodeBase):
 class DamBase(BaseModel):
     model_config = {"arbitrary_types_allowed": True}
     
-    border_geometry: Optional[str] = Field(
+    border_geometry: Optional[Dict[str, Any]] = Field(
         default=None,
-        description="GeoJSON MultiPolygon string"
+        description="GeoJSON MultiPolygon object"
     )
     max_volume: Decimal
     description: str = ""

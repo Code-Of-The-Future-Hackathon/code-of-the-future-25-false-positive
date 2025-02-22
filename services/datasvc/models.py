@@ -2,7 +2,7 @@ import uuid
 
 from geoalchemy2 import Geometry
 from sqlalchemy import Column, Date, DateTime, Enum, Float, ForeignKey, Integer, String, Text, Numeric
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.sql import func
 
 from database import Base
@@ -28,7 +28,7 @@ class Dam(Base):
     __table_args__ = {"schema": "false_positive"}
 
     id = Column(UUID(as_uuid=True), ForeignKey("false_positive.nodes.id"), primary_key=True)
-    border_geometry = Column(Geometry("MULTIPOLYGON", srid=4326))
+    border_geometry = Column(JSONB)  # GeoJSON MultiPolygon
     max_volume = Column(Numeric)  # m³
     description = Column(Text, server_default="")
 
