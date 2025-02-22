@@ -2,7 +2,7 @@ from uuid import UUID
 import uuid
 
 from fastapi import Depends, FastAPI, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, aliased
 
 import models
 import schema
@@ -82,14 +82,38 @@ def create_dam(dam: schema.DamCreate, db: Session = Depends(get_db)):
 
 
 @app.get("/dams", response_model=list[schema.Dam])
-def read_dams(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    dams = (
+def read_dams(
+    skip: int = 0, 
+    limit: int = 100, 
+    search: str = None, 
+    db: Session = Depends(get_db)
+):
+    query = (
         db.query(models.Dam, models.Node)
         .join(models.Node, models.Dam.id == models.Node.id)
-        .offset(skip)
-        .limit(limit)
-        .all()
     )
+    
+    if search:
+        search_term = f"%{search}%"
+        # Create alias for Node to use in place search
+        PlaceNode = aliased(models.Node)
+        
+        # Join with places and their nodes to search through place names
+        query = query.outerjoin(models.dam_places, models.Dam.id == models.dam_places.c.dam_id)\
+            .outerjoin(models.Place, models.dam_places.c.place_id == models.Place.id)\
+            .outerjoin(PlaceNode, models.Place.id == PlaceNode.id)\
+            .filter(
+                # Search in dam display name
+                models.Node.display_name.ilike(search_term) |
+                # Search in dam municipality
+                models.Dam.municipality.ilike(search_term) |
+                # Search in related places display names
+                PlaceNode.display_name.ilike(search_term)
+            )\
+            .distinct()  # Avoid duplicates due to the joins
+    
+    dams = query.offset(skip).limit(limit).all()
+    
     return [
         {
             **dam.__dict__,
