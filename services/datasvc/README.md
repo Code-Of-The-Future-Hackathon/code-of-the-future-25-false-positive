@@ -1,6 +1,50 @@
-# Data Model
+# The Data Service
 
-## Node (Base table for network nodes)
+A CRUD service for the dam network database.
+
+## Setup
+
+1. Create a virtual environment and activate it:
+
+```bash
+python -m venv venv
+source venv/bin/activate  # On Windows use: venv\Scripts\activate
+```
+
+2. Install dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+3. Create a `.env` file based on `.env.example` and set your PostgreSQL database URL:
+
+```bash
+DATABASE_URL=postgresql://user:password@localhost:5432/dbname
+```
+
+## Running the Application
+
+Start the application with:
+
+```bash
+fastapi dev main.py
+```
+
+The API will be available at `http://localhost:8000`
+
+## API Documentation
+
+- Swagger UI: `http://localhost:8000/docs`
+- ReDoc: `http://localhost:8000/redoc`
+
+## Data Model
+
+## Diagram
+
+![Diagram](./diagram.png)
+
+### Node (Base table for network nodes)
 
 - id (uuid PRIMARY KEY)
 - display_name (varchar)
@@ -10,14 +54,14 @@
 - created_at (timestamp)
 - updated_at (timestamp)
 
-## Dam (Extends Node)
+### Dam (Extends Node)
 
 - id (uuid PRIMARY KEY, FOREIGN KEY REFERENCES Node(id))
 - border_geometry (geometry(MULTIPOLYGON, 4326))
 - max_volume (decimal) -- m³, maximum capacity
 - description (text, default: '')
 
-## Place (Extends Node)
+### Place (Extends Node)
 
 - id (uuid PRIMARY KEY, FOREIGN KEY REFERENCES Node(id))
 - population (integer)
@@ -26,7 +70,7 @@
 - non_dam_incoming_flow (decimal) -- m³/s
 - radius (decimal) -- meters
 
-## WaterConnection
+### WaterConnection
 
 - id (uuid PRIMARY KEY)
 - source_node_id (uuid FOREIGN KEY REFERENCES Node(id))
@@ -37,7 +81,7 @@
 - created_at (timestamp)
 - updated_at (timestamp)
 
-## DamBulletinMeasurement
+### DamBulletinMeasurement
 
 - id (uuid PRIMARY KEY)
 - dam_id (uuid FOREIGN KEY REFERENCES Dam(id))
@@ -47,7 +91,7 @@
 - avg_incoming_flow (decimal) -- m³/s, average daily inflow
 - avg_outgoing_flow (decimal) -- m³/s, average daily outflow
 
-## SatelliteImage
+### SatelliteImage
 
 - id (uuid PRIMARY KEY)
 - dam_id (uuid FOREIGN KEY REFERENCES Dam(id))
@@ -56,7 +100,7 @@
 - bounding_box (geometry(POLYGON, 4326))
 - created_at (timestamp)
 
-## UserBillForm
+### UserBillForm
 
 - id (uuid PRIMARY KEY)
 - place_id (uuid FOREIGN KEY REFERENCES Place(id))
@@ -64,14 +108,14 @@
 - end_date (date)
 - created_at (timestamp)
 
-## NewsletterSubscription
+### NewsletterSubscription
 
 - id (uuid PRIMARY KEY)
 - email (varchar UNIQUE)
 - created_at (timestamp)
 - updated_at (timestamp)
 
-## DamAlert
+### DamAlert
 
 - id (uuid PRIMARY KEY)
 - dam_id (uuid FOREIGN KEY REFERENCES Dam(id))
