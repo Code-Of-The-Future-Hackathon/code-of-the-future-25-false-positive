@@ -4,9 +4,9 @@ import uuid
 from fastapi import Depends, FastAPI, HTTPException
 from sqlalchemy.orm import Session, aliased
 
-import models
-import schema
-from database import engine, get_db
+from . import models
+from . import schema
+from .database import engine, get_db
 
 # Create tables
 models.Base.metadata.create_all(bind=engine)
@@ -92,45 +92,72 @@ def read_dams(
     search: str = None, 
     db: Session = Depends(get_db)
 ):
+    # Base query joining Dam with its Node
+    PlaceNode = aliased(models.Node)
     query = (
-        db.query(models.Dam, models.Node)
+        db.query(models.Dam, models.Node, models.Place, PlaceNode.display_name.label('place_display_name'))
         .join(models.Node, models.Dam.id == models.Node.id)
+        .outerjoin(models.dam_places, models.Dam.id == models.dam_places.c.dam_id)
+        .outerjoin(models.Place, models.dam_places.c.place_id == models.Place.id)
+        .outerjoin(PlaceNode, models.Place.id == PlaceNode.id)
     )
     
     if search:
         search_term = f"%{search}%"
-        # Create alias for Node to use in place search
-        PlaceNode = aliased(models.Node)
-        
-        # Join with places and their nodes to search through place names
-        query = query.outerjoin(models.dam_places, models.Dam.id == models.dam_places.c.dam_id)\
-            .outerjoin(models.Place, models.dam_places.c.place_id == models.Place.id)\
-            .outerjoin(PlaceNode, models.Place.id == PlaceNode.id)\
-            .filter(
-                # Search in dam display name
-                models.Node.display_name.ilike(search_term) |
-                # Search in dam municipality
-                models.Dam.municipality.ilike(search_term) |
-                # Search in related places display names
-                PlaceNode.display_name.ilike(search_term)
-            )\
-            .distinct()  # Avoid duplicates due to the joins
+        query = query.filter(
+            PlaceNode.display_name.ilike(search_term) |
+            models.Dam.municipality.ilike(search_term) |
+            PlaceNode.display_name.ilike(search_term)
+        )
     
-    dams = query.offset(skip).limit(limit).all()
-    
-    return [
-        {
-            **dam.__dict__,
-            "display_name": node.display_name,
-            "latitude": node.latitude,
-            "longitude": node.longitude,
-            "created_at": node.created_at,
-            "updated_at": node.updated_at,
-            "places": [{"id": place.id, "display_name": db.query(models.Node).get(place.id).display_name} 
-                      for place in dam.places]
-        }
-        for dam, node in dams
+    # First get the dam IDs we want to return
+    dam_ids = [
+        dam_id for dam_id, in 
+        query.with_entities(models.Dam.id)
+        .distinct()
+        .offset(skip)
+        .limit(limit)
+        .all()
     ]
+    
+    # Then fetch complete data for these dams
+    final_query = (
+        db.query(
+            models.Dam,
+            models.Node,
+            models.Place,
+            PlaceNode.display_name.label('place_display_name')
+        )
+        .join(models.Node, models.Dam.id == models.Node.id)
+        .outerjoin(models.dam_places, models.Dam.id == models.dam_places.c.dam_id)
+        .outerjoin(models.Place, models.dam_places.c.place_id == models.Place.id)
+        .outerjoin(PlaceNode, models.Place.id == PlaceNode.id)
+        .filter(models.Dam.id.in_(dam_ids))
+    )
+    
+    # Process results
+    results = final_query.all()
+    
+    # Group results by dam
+    dams_dict = {}
+    for dam, node, place, place_display_name in results:
+        if dam.id not in dams_dict:
+            dams_dict[dam.id] = {
+                **dam.__dict__,
+                "display_name": node.display_name,
+                "latitude": node.latitude,
+                "longitude": node.longitude,
+                "created_at": node.created_at,
+                "updated_at": node.updated_at,
+                "places": []
+            }
+        if place and place.id:  # Only add place if it exists
+            place_info = {"id": place.id, "display_name": place_display_name}
+            if place_info not in dams_dict[dam.id]["places"]:
+                dams_dict[dam.id]["places"].append(place_info)
+    
+    # Return results in the same order as the IDs
+    return [dams_dict[dam_id] for dam_id in dam_ids]
 
 
 @app.get("/dams/{dam_id}", response_model=schema.Dam)
