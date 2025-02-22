@@ -1,8 +1,8 @@
 import uuid
 
 from geoalchemy2 import Geometry
-from sqlalchemy import Column, Date, DateTime, Enum, Float, ForeignKey, Integer, String, Text
-from sqlalchemy.dialects.postgresql import DECIMAL, UUID
+from sqlalchemy import Column, Date, DateTime, Enum, Float, ForeignKey, Integer, String, Text, Numeric
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 
 from database import Base
@@ -14,8 +14,8 @@ class Node(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     display_name = Column(String, nullable=False)
-    latitude = Column(DECIMAL, nullable=False)
-    longitude = Column(DECIMAL, nullable=False)
+    latitude = Column(Numeric, nullable=False)
+    longitude = Column(Numeric, nullable=False)
     node_type = Column(
         Enum("dam", "place", "junction", name="node_type", schema="false_positive"), nullable=False
     )
@@ -29,7 +29,7 @@ class Dam(Base):
 
     id = Column(UUID(as_uuid=True), ForeignKey("false_positive.nodes.id"), primary_key=True)
     border_geometry = Column(Geometry("MULTIPOLYGON", srid=4326))
-    max_volume = Column(DECIMAL)  # m³
+    max_volume = Column(Numeric)  # m³
     description = Column(Text, server_default="")
 
 
@@ -39,10 +39,10 @@ class Place(Base):
 
     id = Column(UUID(as_uuid=True), ForeignKey("false_positive.nodes.id"), primary_key=True)
     population = Column(Integer)
-    consumption_per_capita = Column(DECIMAL)  # m³/person/day
-    water_price = Column(DECIMAL)  # BGN/m³
-    non_dam_incoming_flow = Column(DECIMAL)  # m³/s
-    radius = Column(DECIMAL)  # meters
+    consumption_per_capita = Column(Numeric)  # m³/person/day
+    water_price = Column(Numeric)  # BGN/m³
+    non_dam_incoming_flow = Column(Numeric)  # m³/s
+    radius = Column(Numeric)  # meters
 
 
 class WaterConnection(Base):
@@ -56,9 +56,9 @@ class WaterConnection(Base):
     target_node_id = Column(
         UUID(as_uuid=True), ForeignKey("false_positive.nodes.id"), nullable=False
     )
-    max_flow_rate = Column(DECIMAL)  # m³/s
-    current_flow_rate = Column(DECIMAL, nullable=True)  # m³/s
-    length = Column(DECIMAL)  # meters
+    max_flow_rate = Column(Numeric)  # m³/s
+    current_flow_rate = Column(Numeric, nullable=True)  # m³/s
+    length = Column(Numeric)  # meters
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
@@ -70,10 +70,10 @@ class DamBulletinMeasurement(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     dam_id = Column(UUID(as_uuid=True), ForeignKey("false_positive.dams.id"), nullable=False)
     timestamp = Column(DateTime(timezone=True), nullable=False)
-    volume = Column(DECIMAL)  # m³
-    fill_volume = Column(DECIMAL)  # m³
-    avg_incoming_flow = Column(DECIMAL)  # m³/s
-    avg_outgoing_flow = Column(DECIMAL)  # m³/s
+    volume = Column(Numeric)  # m³
+    fill_volume = Column(Numeric)  # m³
+    avg_incoming_flow = Column(Numeric)  # m³/s
+    avg_outgoing_flow = Column(Numeric)  # m³/s
 
 
 class SatelliteImage(Base):
