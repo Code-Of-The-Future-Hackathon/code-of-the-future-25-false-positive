@@ -1,0 +1,35 @@
+[flake8]
+max-line-length = 100
+exclude = 
+    ./venv/*,
+    ./.venv/*,
+    ./env/*,
+    ./.env/*,
+    ./__pycache__/*,
+    ./.git/*,
+    ./build/*,
+    ./dist/*
+extend-ignore = 
+    # Missing docstrings
+    D100,D101,D102,D103,D104,D105,D106,D107,
+    # 1 blank line required before class docstring
+    D203,
+    # Multi-line docstring summary should start at the first line
+    D212,
+    # First line should end with a period
+    D400,
+    # First line should be in imperative mood
+    D401
+per-file-ignores =
+    # Ignore unused imports in __init__.py files
+    __init__.py:F401
+import-order-style = google
+application-import-names = models,schemas,database
+max-complexity = 10
+inline-quotes = "
+multiline-quotes = """
+docstring-quotes = """
+# Compatibility with Black
+extend-select = B950
+ignore = E203, E501, W503
+select = C,E,F,W,B,B950 
