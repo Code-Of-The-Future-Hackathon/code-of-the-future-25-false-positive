@@ -3,7 +3,6 @@ from decimal import Decimal
 from typing import Literal, Optional
 
 from pydantic import UUID4, BaseModel, EmailStr, Field
-from shapely.geometry import MultiPolygon, Polygon
 
 
 class NodeBase(BaseModel):
@@ -27,7 +26,12 @@ class Node(NodeBase):
 
 
 class DamBase(BaseModel):
-    border_geometry: Optional[MultiPolygon] = None
+    model_config = {"arbitrary_types_allowed": True}
+    
+    border_geometry: Optional[str] = Field(
+        default=None,
+        description="GeoJSON MultiPolygon string"
+    )
     max_volume: Decimal
     description: str = ""
 
@@ -104,10 +108,14 @@ class DamBulletinMeasurement(DamBulletinMeasurementBase):
 
 
 class SatelliteImageBase(BaseModel):
+    model_config = {"arbitrary_types_allowed": True}
+    
     dam_id: UUID4
     timestamp: datetime
     image_url: str
-    bounding_box: Polygon
+    bounding_box: str = Field(
+        description="GeoJSON Polygon string"
+    )
 
 
 class SatelliteImageCreate(SatelliteImageBase):
