@@ -37,6 +37,63 @@ class Node(NodeBase):
         from_attributes = True
 
 
+class ShortestPathDamData(BaseModel):
+    max_volume: Decimal
+    description: str
+    municipality: str
+    owner: Optional[str] = None
+    operator: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class ShortestPathPlaceData(BaseModel):
+    population: int
+    consumption_per_capita: Decimal
+    water_price: Decimal
+    non_dam_incoming_flow: Decimal
+    radius: Decimal
+    municipality: str
+
+    class Config:
+        from_attributes = True
+
+
+class ShortestPathJunctionData(BaseModel):
+    max_flow_rate: Decimal
+    current_flow_rate: Optional[Decimal] = None
+    length: Decimal
+    source_node_id: UUID4
+    target_node_id: UUID4
+
+    class Config:
+        from_attributes = True
+
+
+class ShortestPathNode(BaseModel):
+    id: UUID4
+    node_type: str
+    display_name: str
+    latitude: Decimal
+    longitude: Decimal
+    distance_from_start: Decimal
+    dam_data: Optional[ShortestPathDamData] = None
+    place_data: Optional[ShortestPathPlaceData] = None
+    junction_data: Optional[ShortestPathJunctionData] = None
+
+    class Config:
+        from_attributes = True
+
+
+class ShortestPathResponse(BaseModel):
+    path: list[ShortestPathNode]
+    total_distance: Decimal
+
+    class Config:
+        from_attributes = True
+
+
 class EdgeBase(BaseModel):
     source_node_id: UUID4
     target_node_id: UUID4
@@ -85,6 +142,23 @@ class DamCreate(DamBase, NodeFieldsMixin):
     place_ids: list[UUID4] = Field(default_factory=list)
 
 
+class DamUpdate(BaseModel):
+    model_config = {"arbitrary_types_allowed": True}
+    
+    display_name: Optional[str] = None
+    latitude: Optional[Decimal] = None
+    longitude: Optional[Decimal] = None
+    border_geometry: Optional[Dict[str, Any]] = None
+    max_volume: Optional[Decimal] = None
+    description: Optional[str] = None
+    municipality: Optional[str] = None
+    owner: Optional[str] = None
+    owner_contact: Optional[str] = None
+    operator: Optional[str] = None
+    operator_contact: Optional[str] = None
+    place_ids: Optional[list[UUID4]] = None
+
+
 class Dam(DamBase, NodeResponseMixin):
     places: list[PlaceRef] = Field(default_factory=list)
 
@@ -96,6 +170,7 @@ class PlaceBase(BaseModel):
     non_dam_incoming_flow: Decimal
     radius: Decimal
     municipality: str = ""
+    closest_dam_id: Optional[UUID4] = None
 
 
 class PlaceCreate(PlaceBase, NodeFieldsMixin):

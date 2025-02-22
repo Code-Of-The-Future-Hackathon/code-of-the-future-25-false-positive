@@ -1,8 +1,10 @@
 from uuid import UUID
 import uuid
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Query
 from sqlalchemy.orm import Session, aliased
+from sqlalchemy.sql import text
+from decimal import Decimal
 
 from . import models
 from . import schema
@@ -27,6 +29,178 @@ def read_node(node_id: UUID, db: Session = Depends(get_db)):
     if db_node is None:
         raise HTTPException(status_code=404, detail="Node not found")
     return db_node
+
+
+@app.get("/routes/{start_node_id}/{end_node_id}", response_model=schema.ShortestPathResponse)
+def get_shortest_path(
+    start_node_id: UUID,
+    end_node_id: UUID,
+    db: Session = Depends(get_db)
+):
+    # First verify both nodes exist
+    start_node = db.query(models.Node).filter(models.Node.id == start_node_id).first()
+    end_node = db.query(models.Node).filter(models.Node.id == end_node_id).first()
+    
+    if not start_node or not end_node:
+        raise HTTPException(status_code=404, detail="Start or end node not found")
+    
+    # Get the shortest path using pgr_dijkstra
+    setup_query = text("""
+        -- Create temporary tables for our node mapping
+        CREATE TEMPORARY TABLE IF NOT EXISTS temp_node_mapping (
+            id uuid PRIMARY KEY,
+            node_number bigint
+        );
+        
+        INSERT INTO temp_node_mapping (id, node_number)
+        SELECT id, ROW_NUMBER() OVER () as node_number
+        FROM false_positive.nodes;
+        
+        -- Create temporary table for edge mapping
+        CREATE TEMPORARY TABLE IF NOT EXISTS temp_edge_mapping (
+            id bigint,
+            source bigint,
+            target bigint,
+            cost float
+        );
+        
+        INSERT INTO temp_edge_mapping (id, source, target, cost)
+        SELECT 
+            ROW_NUMBER() OVER ()::bigint as id,
+            src.node_number as source,
+            tgt.node_number as target,
+            e.distance as cost
+        FROM false_positive.edges e
+        JOIN temp_node_mapping src ON e.source_node_id = src.id
+        JOIN temp_node_mapping tgt ON e.target_node_id = tgt.id;
+    """)
+    
+    path_query = text("""
+        WITH path AS (
+            SELECT 
+                node as node_number,
+                edge,
+                agg_cost as distance_from_start
+            FROM pgr_dijkstra(
+                'SELECT id, source, target, cost FROM temp_edge_mapping',
+                (SELECT node_number FROM temp_node_mapping WHERE id = :start),
+                (SELECT node_number FROM temp_node_mapping WHERE id = :end)
+            )
+        )
+        SELECT 
+            n.id,
+            n.node_type,
+            n.display_name,
+            n.latitude,
+            n.longitude,
+            COALESCE(p.distance_from_start, 0) as distance_from_start,
+            -- Dam specific fields
+            d.max_volume as dam_max_volume,
+            d.description as dam_description,
+            d.municipality as dam_municipality,
+            d.owner as dam_owner,
+            d.operator as dam_operator,
+            -- Place specific fields
+            pl.population as place_population,
+            pl.consumption_per_capita as place_consumption_per_capita,
+            pl.water_price as place_water_price,
+            pl.non_dam_incoming_flow as place_non_dam_incoming_flow,
+            pl.radius as place_radius,
+            pl.municipality as place_municipality,
+            -- Junction specific fields
+            j.max_flow_rate as junction_max_flow_rate,
+            j.current_flow_rate as junction_current_flow_rate,
+            j.length as junction_length,
+            j.source_node_id as junction_source_node_id,
+            j.target_node_id as junction_target_node_id
+        FROM path p
+        JOIN temp_node_mapping ni ON p.node_number = ni.node_number
+        JOIN false_positive.nodes n ON n.id = ni.id
+        LEFT JOIN false_positive.dams d ON d.id = n.id
+        LEFT JOIN false_positive.places pl ON pl.id = n.id
+        LEFT JOIN false_positive.junctions j ON j.id = n.id
+        ORDER BY p.distance_from_start;
+    """)
+    
+    cleanup_query = text("""
+        DROP TABLE IF EXISTS temp_node_mapping;
+        DROP TABLE IF EXISTS temp_edge_mapping;
+    """)
+    
+    try:
+        # Setup temporary tables
+        db.execute(setup_query)
+        
+        # Get the path
+        result = db.execute(
+            path_query,
+            {"start": str(start_node_id), "end": str(end_node_id)}
+        ).fetchall()
+        
+        if not result:
+            raise HTTPException(
+                status_code=404,
+                detail="No path found between the specified nodes"
+            )
+        
+        # Convert the results to our response format
+        path_nodes = []
+        for row in result:
+            node_data = {
+                "id": row.id,
+                "node_type": row.node_type,
+                "display_name": row.display_name,
+                "latitude": row.latitude,
+                "longitude": row.longitude,
+                "distance_from_start": Decimal(str(row.distance_from_start))
+            }
+            
+            # Add type-specific data
+            if row.node_type == "dam" and row.dam_max_volume is not None:
+                node_data["dam_data"] = {
+                    "max_volume": row.dam_max_volume,
+                    "description": row.dam_description,
+                    "municipality": row.dam_municipality,
+                    "owner": row.dam_owner,
+                    "operator": row.dam_operator
+                }
+            elif row.node_type == "place" and row.place_population is not None:
+                node_data["place_data"] = {
+                    "population": row.place_population,
+                    "consumption_per_capita": row.place_consumption_per_capita,
+                    "water_price": row.place_water_price,
+                    "non_dam_incoming_flow": row.place_non_dam_incoming_flow,
+                    "radius": row.place_radius,
+                    "municipality": row.place_municipality
+                }
+            elif row.node_type == "junction" and row.junction_max_flow_rate is not None:
+                node_data["junction_data"] = {
+                    "max_flow_rate": row.junction_max_flow_rate,
+                    "current_flow_rate": row.junction_current_flow_rate,
+                    "length": row.junction_length,
+                    "source_node_id": row.junction_source_node_id,
+                    "target_node_id": row.junction_target_node_id
+                }
+            
+            path_nodes.append(node_data)
+        
+        # Total distance is the distance_from_start of the last node
+        total_distance = path_nodes[-1]["distance_from_start"] if path_nodes else Decimal('0')
+        
+        return {
+            "path": path_nodes,
+            "total_distance": total_distance
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error calculating shortest path: {str(e)}"
+        )
+    finally:
+        # Clean up temporary tables
+        db.execute(cleanup_query)
+        db.commit()
 
 
 # Dam endpoints
@@ -184,6 +358,72 @@ def read_dam(dam_id: UUID, db: Session = Depends(get_db)):
     }
 
 
+@app.patch("/dams/{dam_id}", response_model=schema.Dam)
+def update_dam(dam_id: UUID, dam: schema.DamUpdate, db: Session = Depends(get_db)):
+    try:
+        # Get existing dam and node
+        result = (
+            db.query(models.Dam, models.Node)
+            .join(models.Node, models.Dam.id == models.Node.id)
+            .filter(models.Dam.id == dam_id)
+            .first()
+        )
+        if not result:
+            raise HTTPException(status_code=404, detail="Dam not found")
+        
+        db_dam, db_node = result
+        
+        # Update node fields if provided
+        if dam.display_name is not None:
+            db_node.display_name = dam.display_name
+        if dam.latitude is not None:
+            db_node.latitude = dam.latitude
+        if dam.longitude is not None:
+            db_node.longitude = dam.longitude
+            
+        # Update dam fields if provided
+        if dam.border_geometry is not None:
+            db_dam.border_geometry = dam.border_geometry
+        if dam.max_volume is not None:
+            db_dam.max_volume = dam.max_volume
+        if dam.description is not None:
+            db_dam.description = dam.description
+        if dam.municipality is not None:
+            db_dam.municipality = dam.municipality
+        if dam.owner is not None:
+            db_dam.owner = dam.owner
+        if dam.owner_contact is not None:
+            db_dam.owner_contact = dam.owner_contact
+        if dam.operator is not None:
+            db_dam.operator = dam.operator
+        if dam.operator_contact is not None:
+            db_dam.operator_contact = dam.operator_contact
+            
+        # Update places if provided
+        if dam.place_ids is not None:
+            places = db.query(models.Place).filter(models.Place.id.in_(dam.place_ids)).all()
+            db_dam.places = places
+        
+        db.commit()
+        db.refresh(db_dam)
+        db.refresh(db_node)
+        
+        # Return combined dam info
+        return {
+            **db_dam.__dict__,
+            "display_name": db_node.display_name,
+            "latitude": db_node.latitude,
+            "longitude": db_node.longitude,
+            "created_at": db_node.created_at,
+            "updated_at": db_node.updated_at,
+            "places": [{"id": place.id, "display_name": db.query(models.Node).get(place.id).display_name} 
+                      for place in db_dam.places]
+        }
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # Place endpoints
 @app.post("/places", response_model=schema.Place)
 def create_place(place: schema.PlaceCreate, db: Session = Depends(get_db)):
@@ -263,6 +503,60 @@ def read_place(place_id: UUID, db: Session = Depends(get_db)):
     )
     if result is None:
         raise HTTPException(status_code=404, detail="Place not found")
+    place, node = result
+    return {
+        **place.__dict__,
+        "display_name": node.display_name,
+        "latitude": node.latitude,
+        "longitude": node.longitude,
+        "created_at": node.created_at,
+        "updated_at": node.updated_at,
+    }
+
+
+@app.get("/places/{place_id}/route", response_model=schema.ShortestPathResponse)
+def get_route_to_closest_dam(
+    place_id: UUID,
+    db: Session = Depends(get_db)
+):
+    # Get the place and its closest dam
+    place = db.query(models.Place).filter(models.Place.id == place_id).first()
+    if not place:
+        raise HTTPException(status_code=404, detail="Place not found")
+    
+    if not place.closest_dam_id:
+        raise HTTPException(status_code=404, detail="Place has no connected dam")
+    
+    # Get the path from place to its closest dam
+    return get_shortest_path(place_id, place.closest_dam_id, db)
+
+
+@app.patch("/places/{place_id}/closest-dam/{dam_id}", response_model=schema.Place)
+def update_place_closest_dam(
+    place_id: UUID,
+    dam_id: UUID,
+    db: Session = Depends(get_db)
+):
+    # Verify both place and dam exist
+    place = db.query(models.Place).filter(models.Place.id == place_id).first()
+    if not place:
+        raise HTTPException(status_code=404, detail="Place not found")
+    
+    dam = db.query(models.Dam).filter(models.Dam.id == dam_id).first()
+    if not dam:
+        raise HTTPException(status_code=404, detail="Dam not found")
+    
+    # Update the closest dam
+    place.closest_dam_id = dam_id
+    db.commit()
+    
+    # Return updated place with node info
+    result = (
+        db.query(models.Place, models.Node)
+        .join(models.Node, models.Place.id == models.Node.id)
+        .filter(models.Place.id == place_id)
+        .first()
+    )
     place, node = result
     return {
         **place.__dict__,

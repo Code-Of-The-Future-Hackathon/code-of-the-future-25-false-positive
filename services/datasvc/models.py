@@ -79,6 +79,10 @@ class Place(Base):
     non_dam_incoming_flow = Column(Numeric)  # m³/s
     radius = Column(Numeric)  # meters
     municipality = Column(String, nullable=False)  # Municipality name
+    closest_dam_id = Column(UUID(as_uuid=True), ForeignKey("false_positive.dams.id"), nullable=True)
+    
+    # Relationship with closest dam
+    closest_dam = relationship("Dam", foreign_keys=[closest_dam_id])
 
 
 class Junction(Base):
