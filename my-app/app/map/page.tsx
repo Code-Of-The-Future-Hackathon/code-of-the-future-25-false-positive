@@ -1,12 +1,12 @@
 "use client";
 
-import React from "react";
-import { MapContainer, TileLayer, Polygon } from "react-leaflet";
+import React, { useState } from "react";
+import { MapContainer, TileLayer, Polygon, Marker } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 
 import { DropdownMenuDemo } from "@/components/dropdown-menu-demo";
-import { Slider } from "@/components/ui/slider";
 import { SliderDemo } from "@/components/slider-demo";
+import { Card } from "@/components/ui/card";
 
 interface Node {
 	id: string;
@@ -62,9 +62,21 @@ const MapPage = () => {
 	];
 
 	const [year, setYear] = React.useState(2015);
+	const [isCardVisible, setIsCardVisible] = useState(false);
+
+	const [selectedDam, setSelectedDam] = useState<Dam | null>(null);
+
+	const handleMarkerClick = (dam: Dam) => {
+		setIsCardVisible(true);
+		setSelectedDam(dam);
+	};
+
+	const handleCloseClick = () => {
+		setIsCardVisible(false);
+	};
 
 	return (
-		<div className="relative h-screen w-screen">
+		<div className="relative h-screen w-screen overflow-hidden">
 			<div
 				className="absolute top-0 left-1/2 transform -translate-x-1/2 text-xl"
 				style={{
@@ -78,6 +90,24 @@ const MapPage = () => {
 				<DropdownMenuDemo />
 			</div>
 
+			<div
+				className={`absolute right-0 bottom-0 transition-transform transform ${
+					isCardVisible ? "translate-x-0" : "translate-x-full"
+				}`}
+				style={{ zIndex: 10000 }}
+			>
+				<Card className="p-12 max-w-xl">
+					<button onClick={handleCloseClick} className="absolute top-2 right-2">
+						Close
+					</button>
+					<h1>{JSON.stringify(selectedDam)}</h1>
+					<h1>Hello world</h1>
+					<h1>Hello world</h1>
+					<h1>Hello world</h1>
+					<h1>Hello world</h1>
+				</Card>
+			</div>
+
 			<MapContainer
 				center={[42.4633, 23.6122]}
 				zoom={13}
@@ -88,11 +118,18 @@ const MapPage = () => {
 					attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 				/>
 				{dams.map((dam, index) => (
-					<Polygon
-						key={index}
-						pathOptions={{ color: "blue" }}
-						positions={dam.borderGeometry}
-					/>
+					<div key={index}>
+						<Polygon
+							pathOptions={{ color: "blue" }}
+							positions={dam.borderGeometry}
+						/>
+						<Marker
+							position={[dam.latitude, dam.longitude]}
+							eventHandlers={{
+								click: () => handleMarkerClick(dam),
+							}}
+						/>
+					</div>
 				))}
 			</MapContainer>
 		</div>
