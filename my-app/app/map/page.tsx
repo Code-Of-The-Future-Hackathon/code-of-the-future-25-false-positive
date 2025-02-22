@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { MapContainer, TileLayer, Polygon, Polyline } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 
-import { DropdownMenuDemo } from "@/components/dropdown-menu-demo";
+import { CardDropdownMenu } from "@/components/dropdown-menu-demo";
 import { SliderDemo } from "@/components/slider-demo";
 import { Card } from "@/components/ui/card";
 import { ComboboxDemo } from "@/components/combobox-demo";
@@ -111,7 +111,7 @@ const MapPage = () => {
 			)}
 
 			<div style={{ zIndex: 100000 }} className="absolute right-5 top-5">
-				<DropdownMenuDemo onChange={handleMapSelect} selected={selectedMap} />
+				<CardDropdownMenu onChange={handleMapSelect} selected={selectedMap} />
 			</div>
 
 			{selectedMap == "1" && (
