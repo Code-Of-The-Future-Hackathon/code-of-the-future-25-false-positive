@@ -1,5 +1,7 @@
 import Dam from "@/interfaces/dam.interface";
 import PathNode from "@/interfaces/path.interface";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 interface RouteInfoProps {
 	dam: Dam | null;
@@ -116,6 +118,14 @@ function RouteInfo({ dam, path, total_distance }: RouteInfoProps) {
 				Данните са приблизителни и подлежат на промяна според текущите
 				условия.
 			</p>
+
+			<div className="text-center">
+				<Link href={"/home"}>
+					<Button className="mt-5 bg-red-500">
+						Предприеми действие!
+					</Button>
+				</Link>
+			</div>
 
 			{/* ADD DO SOMETHING TAKE ACTION BUTTON */}
 			{/* ADD MORE STATS */}
