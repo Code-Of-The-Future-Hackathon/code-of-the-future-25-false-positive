@@ -24,6 +24,23 @@ class Node(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
 
+class Edge(Base):
+    __tablename__ = "edges"
+    __table_args__ = {"schema": "false_positive"}
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    source_node_id = Column(
+        UUID(as_uuid=True), ForeignKey("false_positive.nodes.id"), nullable=False
+    )
+    target_node_id = Column(
+        UUID(as_uuid=True), ForeignKey("false_positive.nodes.id"), nullable=False
+    )
+    distance = Column(Numeric, nullable=False)  # meters
+    description = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
 # Association table for dam-place relationship
 dam_places = Table(
     "dam_places",
@@ -62,6 +79,10 @@ class Place(Base):
     non_dam_incoming_flow = Column(Numeric)  # m³/s
     radius = Column(Numeric)  # meters
     municipality = Column(String, nullable=False)  # Municipality name
+    closest_dam_id = Column(UUID(as_uuid=True), ForeignKey("false_positive.dams.id"), nullable=True)
+    
+    # Relationship with closest dam
+    closest_dam = relationship("Dam", foreign_keys=[closest_dam_id])
 
 
 class Junction(Base):
@@ -91,6 +112,17 @@ class DamBulletinMeasurement(Base):
     fill_volume = Column(Numeric)  # m³
     avg_incoming_flow = Column(Numeric)  # m³/s
     avg_outgoing_flow = Column(Numeric)  # m³/s
+
+
+class DamPrediction(Base):
+    __tablename__ = "dam_predictions"
+    __table_args__ = {"schema": "false_positive"}
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    dam_id = Column(UUID(as_uuid=True), ForeignKey("false_positive.dams.id"), nullable=False)
+    timestamp = Column(DateTime(timezone=True), nullable=False)
+    fill_volume = Column(Numeric)  # m³
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
 class SatelliteImage(Base):
@@ -139,3 +171,22 @@ class DamAlert(Base):
     timestamp = Column(DateTime(timezone=True), nullable=False)
     message = Column(Text, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class Complaint(Base):
+    __tablename__ = "complaints"
+    __table_args__ = {"schema": "false_positive"}
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_email = Column(String, nullable=False)
+    subject = Column(String, nullable=False)
+    description = Column(Text, nullable=False)
+    status = Column(
+        Enum("pending", "in_progress", "resolved", name="complaint_status", schema="false_positive"),
+        nullable=False,
+        default="pending"
+    )
+    place_id = Column(UUID(as_uuid=True), ForeignKey("false_positive.places.id"), nullable=True)
+    dam_id = Column(UUID(as_uuid=True), ForeignKey("false_positive.dams.id"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
