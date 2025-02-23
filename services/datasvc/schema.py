@@ -1,6 +1,6 @@
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Literal, Optional, Dict, Any
+from typing import Literal, Optional, Dict, Any, Union
 
 from pydantic import UUID4, BaseModel, EmailStr, Field
 
@@ -159,6 +159,27 @@ class ShortestPathNode(BaseModel):
 class ShortestPathResponse(BaseModel):
     path: list[ShortestPathNode]
     total_distance: Decimal
+
+    class Config:
+        from_attributes = True
+
+
+class PointNode(BaseModel):
+    id: Literal["point"]  # Special ID to identify this as a point node
+    node_type: Literal["point"]
+    display_name: str = "Current Location"
+    latitude: Decimal
+    longitude: Decimal
+    distance_from_start: Decimal = Decimal('0')
+
+    class Config:
+        from_attributes = True
+
+
+class PointRouteResponse(BaseModel):
+    path: list[Union[PointNode, ShortestPathNode]]
+    total_distance: Decimal
+    place: Place  # Include the place we're inside of
 
     class Config:
         from_attributes = True

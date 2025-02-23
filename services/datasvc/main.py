@@ -1,6 +1,5 @@
 from uuid import UUID
 import uuid
-from typing import Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -544,6 +543,88 @@ def get_route_to_closest_dam(
     return get_shortest_path(place_id, place.closest_dam_id, db)
 
 
+@app.get("/points/{latitude}/{longitude}/route", response_model=schema.PointRouteResponse)
+def get_route_to_closest_dam_from_point(
+    latitude: float,
+    longitude: float,
+    db: Session = Depends(get_db)
+):
+    # Find the place that we're inside of (center and radius)
+    places = db.query(models.Place, models.Node).join(models.Node, models.Place.id == models.Node.id).all()
+    
+    point_location = (Decimal(str(latitude)), Decimal(str(longitude)))
+    containing_place = None
+    containing_place_node = None
+    
+    for place, node in places:
+        place_location = (node.latitude, node.longitude)
+        # Calculate distance in meters
+        distance = calculate_spherical_distance(
+            float(point_location[0]),
+            float(point_location[1]),
+            float(place_location[0]),
+            float(place_location[1])
+        ) * 1000  # Convert km to meters
+        
+        if distance <= place.radius:
+            containing_place = place
+            containing_place_node = node
+            break
+    
+    if not containing_place:
+        raise HTTPException(status_code=404, detail="Point is not inside any place")
+    
+    if not containing_place.closest_dam_id:
+        raise HTTPException(status_code=404, detail="Place has no connected dam")
+    
+    # Get the path from place to its closest dam
+    path_response = get_shortest_path(containing_place.id, containing_place.closest_dam_id, db)
+    
+    # Create a point node for the starting location
+    point_node = schema.PointNode(
+        id="point",
+        node_type="point",
+        latitude=Decimal(str(latitude)),
+        longitude=Decimal(str(longitude))
+    )
+    
+    # Calculate distances from the point
+    path_nodes = [point_node] + path_response.path
+    
+    # Update distances_from_start for all nodes in the path
+    current_distance = Decimal('0')
+    for i in range(1, len(path_nodes)):
+        prev_node = path_nodes[i-1]
+        curr_node = path_nodes[i]
+        
+        # Calculate distance between nodes
+        distance = calculate_spherical_distance(
+            float(prev_node.latitude),
+            float(prev_node.longitude),
+            float(curr_node.latitude),
+            float(curr_node.longitude)
+        ) * 1000  # Convert km to meters
+        
+        current_distance += Decimal(str(distance))
+        curr_node.distance_from_start = current_distance
+    
+    # Create place info
+    place_info = {
+        **containing_place.__dict__,
+        "display_name": containing_place_node.display_name,
+        "latitude": containing_place_node.latitude,
+        "longitude": containing_place_node.longitude,
+        "created_at": containing_place_node.created_at,
+        "updated_at": containing_place_node.updated_at,
+    }
+    
+    return {
+        "path": path_nodes,
+        "total_distance": current_distance,
+        "place": place_info
+    }
+
+
 @app.patch("/places/{place_id}/closest-dam/{dam_id}", response_model=schema.Place)
 def update_place_closest_dam(
     place_id: UUID,
@@ -887,53 +968,3 @@ def read_alert(alert_id: UUID, db: Session = Depends(get_db)):
     if db_alert is None:
         raise HTTPException(status_code=404, detail="Alert not found")
     return db_alert
-
-
-# Complaint endpoints
-@app.post("/complaints", response_model=schema.Complaint)
-def create_complaint(complaint: schema.ComplaintCreate, db: Session = Depends(get_db)):
-    try:
-        # Verify place_id and dam_id if provided
-        if complaint.place_id:
-            place = db.query(models.Place).filter(models.Place.id == complaint.place_id).first()
-            if not place:
-                raise HTTPException(status_code=404, detail="Place not found")
-        
-        if complaint.dam_id:
-            dam = db.query(models.Dam).filter(models.Dam.id == complaint.dam_id).first()
-            if not dam:
-                raise HTTPException(status_code=404, detail="Dam not found")
-        
-        # Create complaint
-        db_complaint = models.Complaint(**complaint.model_dump())
-        db.add(db_complaint)
-        db.commit()
-        db.refresh(db_complaint)
-        return db_complaint
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.get("/complaints", response_model=list[schema.Complaint])
-def read_complaints(
-    skip: int = 0,
-    limit: int = 100,
-    status: Optional[str] = Query(None, enum=["pending", "in_progress", "resolved"]),
-    db: Session = Depends(get_db)
-):
-    query = db.query(models.Complaint)
-    
-    # Filter by status if provided
-    if status:
-        query = query.filter(models.Complaint.status == status)
-    
-    return query.order_by(models.Complaint.created_at.desc()).offset(skip).limit(limit).all()
-
-
-@app.get("/complaints/{complaint_id}", response_model=schema.Complaint)
-def read_complaint(complaint_id: UUID, db: Session = Depends(get_db)):
-    db_complaint = db.query(models.Complaint).filter(models.Complaint.id == complaint_id).first()
-    if db_complaint is None:
-        raise HTTPException(status_code=404, detail="Complaint not found")
-    return db_complaint
