@@ -5,6 +5,7 @@ from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session, aliased
 from sqlalchemy.sql import text
+from sqlalchemy import func
 from decimal import Decimal
 
 from . import models
@@ -624,11 +625,33 @@ def get_route_to_closest_dam_from_point(
         "municipality": containing_place.municipality,
         "closest_dam_id": containing_place.closest_dam_id
     }
-    
+
+    total_consumption = 0
+    total_dam_outflow = 0
+
+    for node in path_nodes:
+        if isinstance(node, dict):
+            if node["node_type"] == "place":
+                total_consumption += float(node["place_data"]["consumption_per_capita"]) * float(node["place_data"]["population"]) * 30
+            elif node["node_type"] == "dam":
+                # Get last month's measurements for this dam
+                measurements = db.query(models.DamBulletinMeasurement)\
+                    .filter(models.DamBulletinMeasurement.dam_id == node["id"])\
+                    .filter(models.DamBulletinMeasurement.timestamp >= func.now() - text("interval '1 month'"))\
+                    .all()
+                
+                # Sum up total outflow from measurements
+                for measurement in measurements:
+                    total_dam_outflow += float(measurement.avg_outgoing_flow)
+
     return {
         "path": path_nodes,
         "total_distance": current_distance,
-        "place": place_info
+        "place": place_info,
+        "water_metrics": {
+            "total_consumption": total_consumption,
+            "total_dam_outflow": total_dam_outflow,
+        }
     }
 
 
