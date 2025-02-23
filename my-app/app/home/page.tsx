@@ -50,7 +50,11 @@ export default function Home() {
 									__html: card.description,
 								}}
 							></p>
-							<Link href={`/map?type=${card.mapParam}`} passHref>
+							<Link
+								href={`/map?type=${card.mapParam}`}
+								passHref
+								className="mt-auto"
+							>
 								<Button className="bg-red-600 hover:bg-red-700 text-white mt-auto text-base sm:text-lg px-6 sm:px-8 py-2 sm:py-3">
 									Виж тук
 								</Button>
