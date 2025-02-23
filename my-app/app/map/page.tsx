@@ -1,5 +1,4 @@
-import React from "react";
-import MapVisuals from "@/app/map/MapVisuals";
+import { MapVisualsNoSSR } from "@/app/map/MapVisualsNoSSR";
 
 const MapPage = async () => {
 	const response = await fetch("http://localhost:8000/dams?skip=0&limit=10");
@@ -9,7 +8,7 @@ const MapPage = async () => {
 		"http://localhost:8000/dams/feb0577f-335b-4516-a148-21d27f40ad5e",
 	);
 	dams.push(await res2.json());
-	return <MapVisuals dams={dams} />;
+	return <MapVisualsNoSSR dams={dams} />;
 };
 
 export default MapPage;
