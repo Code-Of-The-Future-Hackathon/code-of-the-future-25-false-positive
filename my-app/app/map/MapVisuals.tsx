@@ -18,7 +18,7 @@ import Dam from "@/interfaces/dam.interface";
 import { Card } from "@/components/ui/card";
 import { ComboboxDemo } from "@/components/combobox-demo";
 import { Button } from "@/components/ui/button";
-import DamInfo from "@/components/dam-info";
+import DamInfoComponent from "@/components/dam-info";
 
 import GetAddress from "@/components/get-address";
 import Address from "@/interfaces/address.interface";
@@ -132,15 +132,18 @@ const MapVisuals = ({ dams }: MapVisualsProps) => {
 				>
 					<Card className="p-5">
 						{selectedMap == "1" && selectedDam && (
-							<DamInfo
+							<DamInfoComponent
 								damInfo={selectedDam}
 								onClose={handleCardClose}
+								mapType="1"
 							/>
 						)}
-						{selectedMap == "3" && (
-							<>
-								<h1>fortnite topki</h1>
-							</>
+						{selectedMap == "3" && selectedDam && (
+							<DamInfoComponent
+								damInfo={selectedDam}
+								onClose={handleCardClose}
+								mapType="3"
+							/>
 						)}
 					</Card>
 				</div>
