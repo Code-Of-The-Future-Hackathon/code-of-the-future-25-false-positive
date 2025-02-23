@@ -23,6 +23,7 @@ import RouteInfo from "@/components/route-info";
 import GetAddress from "@/components/get-address";
 import Address from "@/interfaces/address.interface";
 import Path from "@/interfaces/path.interface";
+import { useSearchParams } from "next/navigation";
 
 interface MapVisualsProps {
 	dams: Dam[];
@@ -35,6 +36,24 @@ const MapRelocation = () => {
 };
 
 const MapVisuals = ({ dams }: MapVisualsProps) => {
+	const params = useSearchParams();
+
+	let selectedMapParam = "1";
+
+	switch (params.get("type")) {
+		case "map-1":
+			selectedMapParam = "1";
+			break;
+		case "map-2":
+			selectedMapParam = "2";
+			break;
+		case "map-3":
+			selectedMapParam = "3";
+			break;
+	}
+
+	const [selectedMap, setSelectedMap] = useState(selectedMapParam);
+
 	const [time, setTime] = useState<TimeRecord>({
 		year: 2025,
 		month: "Февруари",
@@ -58,7 +77,6 @@ const MapVisuals = ({ dams }: MapVisualsProps) => {
 	const [isCardVisible, setIsCardVisible] = useState(false);
 	const [isAddressPopupVisible, setIsAddressPopupVisible] = useState(false);
 	const [selectedDam, setSelectedDam] = useState<Dam | null>(null);
-	const [selectedMap, setSelectedMap] = useState("1");
 	const [calculatedPath] = useState<Path[]>([]);
 	const [calculatedTotalDistance] = useState(0);
 	const [userAddress, setUserAddress] = useState<Address | null>(null);
@@ -132,8 +150,8 @@ const MapVisuals = ({ dams }: MapVisualsProps) => {
 				});
 				setPolylineCoords(coords);
 			})
-			.catch((error) => console.error("Error loading GeoJSON:", error));
-	}, [time]);
+			.catch((error) => {});
+	}, [currentMonthInNumber, time]);
 
 	return (
 		<div className="relative h-screen w-screen overflow-hidden">

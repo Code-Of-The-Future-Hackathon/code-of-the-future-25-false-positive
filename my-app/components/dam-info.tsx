@@ -64,7 +64,7 @@ function DamInfoComponent({ damInfo, onClose }: DamInfoProps) {
 
 				setTendency(calculatedTendency);
 			} catch (error) {
-				console.error("Error fetching forecast data:", error);
+				// console.error("Error fetching forecast data:", error);
 			}
 		};
 
