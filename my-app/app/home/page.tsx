@@ -107,12 +107,14 @@ export default function Home() {
 					<h2 className="text-xl sm:text-2xl mt-2 mb-8 sm:mb-12 text-center">
 						Сега по-лесно от всякога!
 					</h2>
-					<Button
-						type="submit"
-						className="w-full sm:w-auto max-w-md min-h-12 sm:min-h-16 p-3 sm:p-4 bg-red-600 hover:bg-red-700 text-white text-base sm:text-lg"
-					>
-						Към страницата за подаване на сигнал
-					</Button>
+					<Link href="/complaint-form">
+						<Button
+							type="submit"
+							className="w-full sm:w-auto max-w-md min-h-12 sm:min-h-16 p-3 sm:p-4 bg-red-600 hover:bg-red-700 text-white text-base sm:text-lg"
+						>
+							Към страницата за подаване на сигнал
+						</Button>
+					</Link>
 				</div>
 			</main>
 			<Footer />
