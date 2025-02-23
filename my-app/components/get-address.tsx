@@ -10,12 +10,8 @@ interface GetAddressProps {
 
 function GetAddress({ onAddressSelect, onClose }: GetAddressProps) {
 	const inputRef = useRef<HTMLInputElement | null>(null);
-	const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(
-		null,
-	);
-	const [selectedAddress, setSelectedAddress] = useState<Address | null>(
-		null,
-	);
+	const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
+	const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
 
 	useEffect(() => {
 		if (!window.google?.maps?.places) {
@@ -26,9 +22,7 @@ function GetAddress({ onAddressSelect, onClose }: GetAddressProps) {
 		}
 
 		if (!inputRef.current) {
-			console.error(
-				"Input reference is null. Autocomplete cannot initialize.",
-			);
+			console.error("Input reference is null. Autocomplete cannot initialize.");
 			return;
 		}
 
@@ -50,9 +44,8 @@ function GetAddress({ onAddressSelect, onClose }: GetAddressProps) {
 			}
 
 			const getAddressComponent = (type: string) =>
-				place?.address_components?.find((comp) =>
-					comp.types.includes(type),
-				)?.long_name || "";
+				place?.address_components?.find((comp) => comp.types.includes(type))
+					?.long_name || "";
 
 			const address: Address = {
 				street: getAddressComponent("route"),

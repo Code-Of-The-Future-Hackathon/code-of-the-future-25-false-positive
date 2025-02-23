@@ -20,15 +20,10 @@ import { ComboboxDemo } from "@/components/combobox-demo";
 import { Button } from "@/components/ui/button";
 import DamInfoComponent from "@/components/dam-info";
 import RouteInfo from "@/components/route-info";
-// import GetAddress from "@/components/get-address";
+import GetAddress from "@/components/get-address";
 import Address from "@/interfaces/address.interface";
 import Path from "@/interfaces/path.interface";
-import dynamic from "next/dynamic";
-
 import { useSearchParams } from "next/navigation";
-const GetAddress = dynamic(() => import("@/components/get-address"), {
-	ssr: false,
-});
 
 interface MapVisualsProps {
 	dams: Dam[];
