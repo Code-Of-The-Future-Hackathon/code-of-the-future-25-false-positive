@@ -215,13 +215,15 @@ const MapVisuals = ({ dams }: MapVisualsProps) => {
 				{(selectedMap == "1" || selectedMap == "3") &&
 					dams.map((dam, index) => (
 						<div key={index}>
-							<Polygon
-								pathOptions={{ color: "blue" }}
-								positions={dam.border_geometry.coordinates}
-								eventHandlers={{
-									click: () => handleDamClick(dam),
-								}}
-							/>
+							{dam.border_geometry && (
+								<Polygon
+									pathOptions={{ color: "blue" }}
+									positions={dam.border_geometry.coordinates}
+									eventHandlers={{
+										click: () => handleDamClick(dam),
+									}}
+								/>
+							)}
 						</div>
 					))}
 				{selectedMap == "2" && (
