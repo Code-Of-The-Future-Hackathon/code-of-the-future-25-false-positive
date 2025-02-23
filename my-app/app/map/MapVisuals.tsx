@@ -185,7 +185,7 @@ const MapVisuals = ({ dams }: MapVisualsProps) => {
 						/>
 					</>
 				)}
-				{selectedMap != "2" && (
+				{selectedMap == "2" && (
 					<div className="absolute left-5 top-1/2 transform -translate-y-1/2 z-[10000] rounded-lg">
 						<RouteInfo
 							dam={selectedDam}

@@ -77,7 +77,7 @@ function DamInfoComponent({ damInfo, onClose, mapType }: DamInfoProps) {
 	}, [damInfo]);
 
 	return (
-		<div className="relative mr-3 p-6 text-center">
+		<div className="relative mr-3 p-6 text-center max-w-3xl">
 			<button
 				onClick={onClose}
 				className="absolute top-1 right-1 text-gray-600 hover:text-gray-900 font-bold text-lg"
