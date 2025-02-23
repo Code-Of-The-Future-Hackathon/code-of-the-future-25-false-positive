@@ -25,7 +25,7 @@ interface Dam extends Node {
 	operator_contact: string | null;
 	places: Record<string, string>;
 	measurements: DamMeasurements[] | null;
-	tendency: Tendency | null;
+	future_tendency: Tendency | null;
 	will_it_dry_up: boolean;
 }
 
