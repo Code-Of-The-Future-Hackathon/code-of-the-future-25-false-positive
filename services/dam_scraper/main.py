@@ -25,6 +25,13 @@ if __name__ == "__main__":
         if dams:
             print(f"Found {len(dams)} dams for municipality {municipality['name']}")
             for dam in dams:
+                from supported_dams import SUPPORTED_DAMS
+
+                # Skip dams that don't match our supported list
+                if not any(supported_name.lower() in dam['name'].lower() or dam['name'].lower() in supported_name.lower() for supported_name in SUPPORTED_DAMS):
+                    print(f"Skipping unsupported dam {dam['name']}")
+                    continue
+
                 try:
                     location_data = geocoding.geocode_location_opencage(dam['location'].replace('яз.', 'Язовир') + ' България')
                     geojson_coords = [[[

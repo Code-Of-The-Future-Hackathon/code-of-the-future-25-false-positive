@@ -1,5 +1,5 @@
 from datetime import date, datetime
-from typing import Literal, Optional, Dict, Any, Union
+from typing import Any, Dict, Literal, Optional, Union
 
 from pydantic import UUID4, BaseModel, EmailStr, Field
 
@@ -66,10 +66,9 @@ class DamBulletinMeasurement(DamBulletinMeasurementBase):
 
 class DamBase(BaseModel):
     model_config = {"arbitrary_types_allowed": True}
-    
+
     border_geometry: Optional[Dict[str, Any]] = Field(
-        default=None,
-        description="GeoJSON MultiPolygon object"
+        default=None, description="GeoJSON MultiPolygon object"
     )
     max_volume: float
     description: str = ""
@@ -86,7 +85,7 @@ class DamCreate(DamBase, NodeFieldsMixin):
 
 class DamUpdate(BaseModel):
     model_config = {"arbitrary_types_allowed": True}
-    
+
     display_name: Optional[str] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
@@ -103,7 +102,9 @@ class DamUpdate(BaseModel):
 
 class Dam(DamBase, NodeResponseMixin):
     places: list[PlaceRef] = Field(default_factory=list)
-    measurements: list[DamBulletinMeasurement] = Field(default_factory=list, description="Last 2 measurements in chronological order")
+    measurements: list[DamBulletinMeasurement] = Field(
+        default_factory=list, description="Last 2 measurements in chronological order"
+    )
 
 
 class ShortestPathDamData(BaseModel):
@@ -176,16 +177,24 @@ class PointNode(BaseModel):
 
 
 class WaterMetrics(BaseModel):
-    total_consumption: float = Field(description="Total water consumption in cubic meters per month")
-    total_dam_outflow: float = Field(description="Total water provided by dams in cubic meters per month")
-    total_natural_inflow: float = Field(description="Total water from natural sources in cubic meters per month")
-    net_water_balance: float = Field(description="Net water balance (supply - demand) in cubic meters per month")
+    total_consumption: float = Field(
+        description="Total water consumption in cubic meters per month"
+    )
+    total_dam_outflow: float = Field(
+        description="Total water provided by dams in cubic meters per month"
+    )
+    total_natural_inflow: float = Field(
+        description="Total water from natural sources in cubic meters per month"
+    )
+    net_water_balance: float = Field(
+        description="Net water balance (supply - demand) in cubic meters per month"
+    )
 
 
 class PointRouteResponse(BaseModel):
     path: list[Union[PointNode, ShortestPathNode]]
     total_distance: float
-    place: 'Place'
+    place: "Place"
     water_metrics: WaterMetrics
 
     class Config:
@@ -259,7 +268,9 @@ class DamPredictionCreate(DamPredictionBase):
 class DamPrediction(DamPredictionBase):
     id: UUID4
     created_at: datetime
-    fill_percentage: float = Field(description="Percentage of the dam's maximum volume that is filled")
+    fill_percentage: float = Field(
+        description="Percentage of the dam's maximum volume that is filled"
+    )
 
     class Config:
         from_attributes = True
@@ -267,13 +278,11 @@ class DamPrediction(DamPredictionBase):
 
 class SatelliteImageBase(BaseModel):
     model_config = {"arbitrary_types_allowed": True}
-    
+
     dam_id: UUID4
     timestamp: datetime
     image_url: str
-    bounding_box: str = Field(
-        description="GeoJSON Polygon string"
-    )
+    bounding_box: str = Field(description="GeoJSON Polygon string")
 
 
 class SatelliteImageCreate(SatelliteImageBase):

@@ -22,8 +22,8 @@ engine = create_engine(
     pool_pre_ping=True,  # Enable connection health checks
     connect_args={
         "sslmode": "require",  # Force SSL
-        "connect_timeout": 10  # Connection timeout in seconds
-    }
+        "connect_timeout": 10,  # Connection timeout in seconds
+    },
 )
 
 with engine.connect() as connection:
