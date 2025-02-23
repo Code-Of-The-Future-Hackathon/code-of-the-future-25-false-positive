@@ -20,6 +20,9 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
+    op.execute('CREATE EXTENSION IF NOT EXISTS postgis')
+    op.execute('CREATE EXTENSION IF NOT EXISTS pgrouting')
+
     # Add closest_dam_id column to places table
     op.add_column('places', sa.Column('closest_dam_id', postgresql.UUID(as_uuid=True), nullable=True), schema='false_positive')
     
