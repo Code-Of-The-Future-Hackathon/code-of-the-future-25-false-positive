@@ -18,15 +18,13 @@ export default function Home() {
 				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-10 mb-12 sm:mb-16 w-full max-w-6xl">
 					{[
 						{
-							title:
-								"Знаеше ли, че в България има над <span class='font-bold'>3000 язовира</span>?",
+							title: "Знаеше ли, че в България има над <span class='font-bold'>3000 язовира</span>?",
 							description:
 								"А знаеш ли какво е тяхното <span class='font-bold'>състояние</span> и какви са <span class='font-bold'>тенденциите</span> на тези в твоя район?",
 							mapParam: "map-1",
 						},
 						{
-							title:
-								"Къде се губи <span class='font-bold'>водата</span> от язовирите?",
+							title: "Къде се губи <span class='font-bold'>водата</span> от язовирите?",
 							description:
 								"Окрий пътя на водата от язовирите до твоята <span class='font-bold'>чешма</span> и си отговори на въпроса \"Къде изчезва тя?\"",
 							mapParam: "map-2",
@@ -48,7 +46,9 @@ export default function Home() {
 							></h3>
 							<p
 								className="mb-6 text-base sm:text-lg"
-								dangerouslySetInnerHTML={{ __html: card.description }}
+								dangerouslySetInnerHTML={{
+									__html: card.description,
+								}}
 							></p>
 							<Link href={`/map?type=${card.mapParam}`} passHref>
 								<Button className="bg-red-600 hover:bg-red-700 text-white mt-auto text-base sm:text-lg px-6 sm:px-8 py-2 sm:py-3">
@@ -60,12 +60,14 @@ export default function Home() {
 				</div>
 
 				<h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold p-4 sm:p-6 mb-8 sm:mb-12 mt-8 sm:mt-12 text-center">
-					<span className="text-red-600">Стани част</span> от каузата ни!
+					<span className="text-red-600">Стани част</span> от каузата
+					ни!
 				</h1>
 				<div className="w-full max-w-xl p-6 sm:p-10 border rounded-lg">
 					<h2 className="text-xl sm:text-2xl mb-6 sm:mb-8 text-center">
-						Регистрирай своето водоупотребление, за да ни помогнеш да пресметнем
-						загубите на вода в населеното ти място по-точно.
+						Регистрирай своето водоупотребление, за да ни помогнеш
+						да пресметнем загубите на вода в населеното ти място
+						по-точно.
 					</h2>
 
 					<form className="space-y-4 sm:space-y-6">
@@ -87,12 +89,13 @@ export default function Home() {
 						</Button>
 					</form>
 					<p className="text-xs sm:text-sm mt-6 sm:mt-8 text-center">
-						* Въвеждайки колко си платил за водата си през изминалия месец, ние
-						можем да определим колко точно си изразходил. Благодарение на
-						информацията от теб и твоите съграждани, и използвайки обществено
-						достъпна информация за водата, която излиза от всеки един язовир
-						ежедневно, можем да пресметнем каква част от водата бива загубена
-						преди да достигне до вас
+						* Въвеждайки колко си платил за водата си през изминалия
+						месец, ние можем да определим колко точно си изразходил.
+						Благодарение на информацията от теб и твоите съграждани,
+						и използвайки обществено достъпна информация за водата,
+						която излиза от всеки един язовир ежедневно, можем да
+						пресметнем каква част от водата бива загубена преди да
+						достигне до вас
 					</p>
 				</div>
 
