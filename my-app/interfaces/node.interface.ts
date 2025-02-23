@@ -1,6 +1,6 @@
 interface Node {
 	id: string;
-	displayName: string;
+	display_name: string;
 	latitude: number;
 	longitude: number;
 	node_type: string;

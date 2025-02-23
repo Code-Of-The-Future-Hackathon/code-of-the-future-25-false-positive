@@ -11,7 +11,6 @@ import {
 import "leaflet/dist/leaflet.css";
 
 import { CardDropdownMenu } from "@/components/dropdown-menu-demo";
-import { SliderDemo } from "@/components/slider-demo";
 import { SliderTime } from "@/components/slider-time";
 import TimeRecord from "@/interfaces/time-record.interface";
 import Dam from "@/interfaces/dam.interface";
@@ -19,6 +18,7 @@ import Dam from "@/interfaces/dam.interface";
 import { Card } from "@/components/ui/card";
 import { ComboboxDemo } from "@/components/combobox-demo";
 import { Button } from "@/components/ui/button";
+import DamInfo from "@/components/dam-info";
 
 import GetAddress from "@/components/get-address";
 import Address from "@/interfaces/address.interface";
@@ -125,31 +125,26 @@ const MapVisuals = ({ dams }: MapVisualsProps) => {
 				</>
 			)}
 
-			<div
-				className={`absolute right-1 bottom-1/2 transition-transform transform translate-y-1/2 ${
-					isCardVisible ? "translate-x-0" : "translate-x-full"
-				}`}
-				style={{ zIndex: 10000 }}
-			>
-				<Card className="p-12 max-w-lg h-[40rem]">
-					{selectedMap == "1" && (
-						<>
-							<Button
-								onClick={handleCardClose}
-								className="absolute top-2 right-2"
-							>
-								Затвори
-							</Button>
-							<h1>{JSON.stringify(selectedDam)}</h1>
-						</>
-					)}
-					{selectedMap == "3" && (
-						<>
-							<h1>fortnite topki</h1>
-						</>
-					)}
-				</Card>
-			</div>
+			{isCardVisible && (
+				<div
+					className="fixed bottom-8 right-6 transform transition-opacity opacity-100"
+					style={{ zIndex: 10000 }}
+				>
+					<Card className="p-5">
+						{selectedMap == "1" && selectedDam && (
+							<DamInfo
+								damInfo={selectedDam}
+								onClose={handleCardClose}
+							/>
+						)}
+						{selectedMap == "3" && (
+							<>
+								<h1>fortnite topki</h1>
+							</>
+						)}
+					</Card>
+				</div>
+			)}
 
 			<MapContainer
 				center={[42.4633, 23.6122]}
