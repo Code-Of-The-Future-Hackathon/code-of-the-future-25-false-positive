@@ -100,6 +100,12 @@ const MapVisuals = ({ dams }: MapVisualsProps) => {
 		setIsAddressPopupVisible(selectedMap === "2");
 	}, [selectedMap]);
 
+	useEffect(() => {
+		if (userAddress) {
+			map.flyTo([userAddress.latitude, userAddress.longitude], 13);
+		}
+	}, [userAddress]);
+
 	const [polylineCoords, setPolylineCoords] = useState([]);
 
 	useEffect(() => {
