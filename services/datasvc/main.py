@@ -626,31 +626,54 @@ def get_route_to_closest_dam_from_point(
         "closest_dam_id": containing_place.closest_dam_id
     }
 
-    total_consumption = 0
-    total_dam_outflow = 0
+    total_consumption = 0  # m³/month
+    total_dam_outflow = 0  # m³/month
+    total_natural_inflow = 0  # m³/month
 
     for node in path_nodes:
         if isinstance(node, dict):
             if node["node_type"] == "place":
-                total_consumption += float(node["place_data"]["consumption_per_capita"]) * float(node["place_data"]["population"]) * 30
-            elif node["node_type"] == "dam":
-                # Get last month's measurements for this dam
-                measurements = db.query(models.DamBulletinMeasurement)\
-                    .filter(models.DamBulletinMeasurement.dam_id == node["id"])\
-                    .filter(models.DamBulletinMeasurement.timestamp >= func.now() - text("interval '1 month'"))\
-                    .all()
+                # Calculate monthly consumption: (m³/person/day) * persons * 30 days
+                daily_consumption = float(node["place_data"]["consumption_per_capita"]) * float(node["place_data"]["population"])
+                total_consumption += daily_consumption * 30
                 
-                # Sum up total outflow from measurements
-                for measurement in measurements:
-                    total_dam_outflow += float(measurement.avg_outgoing_flow)
+                # Add natural inflow: (m³/day) * 30 days
+                daily_natural = float(node["place_data"]["non_dam_incoming_flow"])
+                total_natural_inflow += daily_natural * 30
+                
+            elif node["node_type"] == "dam":
+                # Get latest measurement for this dam
+                latest_measurement = (
+                    db.query(models.DamBulletinMeasurement)
+                    .filter(models.DamBulletinMeasurement.dam_id == node["id"])
+                    .order_by(models.DamBulletinMeasurement.timestamp.desc())
+                    .first()
+                )
+                
+                if latest_measurement:
+                    # Add the measurement to the node for display
+                    node["latest_measurement"] = {
+                        "id": latest_measurement.id,
+                        "timestamp": latest_measurement.timestamp,
+                        "volume": float(latest_measurement.volume),
+                        "fill_volume": float(latest_measurement.fill_volume),
+                        "avg_incoming_flow": float(latest_measurement.avg_incoming_flow),
+                        "avg_outgoing_flow": float(latest_measurement.avg_outgoing_flow)
+                    }
+                    # Calculate monthly outflow: (m³/day) * 30 days
+                    total_dam_outflow += float(latest_measurement.avg_outgoing_flow) * 30
+                else:
+                    node["latest_measurement"] = None
 
     return {
         "path": path_nodes,
         "total_distance": current_distance,
         "place": place_info,
         "water_metrics": {
-            "total_consumption": total_consumption,
-            "total_dam_outflow": total_dam_outflow,
+            "total_consumption": total_consumption,  # m³/month
+            "total_dam_outflow": total_dam_outflow,  # m³/month
+            "total_natural_inflow": total_natural_inflow,  # m³/month
+            "net_water_balance": total_dam_outflow + total_natural_inflow - total_consumption  # m³/month
         }
     }
 

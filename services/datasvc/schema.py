@@ -175,10 +175,18 @@ class PointNode(BaseModel):
         from_attributes = True
 
 
+class WaterMetrics(BaseModel):
+    total_consumption: float = Field(description="Total water consumption in cubic meters per month")
+    total_dam_outflow: float = Field(description="Total water provided by dams in cubic meters per month")
+    total_natural_inflow: float = Field(description="Total water from natural sources in cubic meters per month")
+    net_water_balance: float = Field(description="Net water balance (supply - demand) in cubic meters per month")
+
+
 class PointRouteResponse(BaseModel):
     path: list[Union[PointNode, ShortestPathNode]]
     total_distance: float
     place: 'Place'
+    water_metrics: WaterMetrics
 
     class Config:
         from_attributes = True
