@@ -27,6 +27,31 @@ app.add_middleware(
 )
 
 
+def flip_coordinates(geojson):
+    """Flip coordinates in a GeoJSON object."""
+    if not geojson or not isinstance(geojson, dict):
+        return geojson
+
+    if geojson.get('type') == 'MultiPolygon':
+        # MultiPolygon structure: [ [[[x, y], [x, y], ...]], [[[x, y], ...]], ... ]
+        for polygon in geojson.get('coordinates', []):
+            for ring in polygon:
+                for coord in ring:
+                    coord[0], coord[1] = coord[1], coord[0]
+    elif geojson.get('type') == 'Polygon':
+        # Polygon structure: [[[x, y], [x, y], ...]]
+        for ring in geojson.get('coordinates', []):
+            for coord in ring:
+                coord[0], coord[1] = coord[1], coord[0]
+    elif geojson.get('type') == 'Point':
+        # Point structure: [x, y]
+        coords = geojson.get('coordinates', [])
+        if len(coords) >= 2:
+            coords[0], coords[1] = coords[1], coords[0]
+    
+    return geojson
+
+
 # Node endpoints
 @app.get("/nodes", response_model=list[schema.Node])
 def read_nodes(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
@@ -253,6 +278,7 @@ def create_dam(dam: schema.DamCreate, db: Session = Depends(get_db)):
         # Return combined dam info
         return {
             **db_dam.__dict__,
+            "border_geometry": flip_coordinates(db_dam.border_geometry),
             "display_name": db_node.display_name,
             "latitude": db_node.latitude,
             "longitude": db_node.longitude,
@@ -295,6 +321,7 @@ def read_dams(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
         # Combine dam info with node info and measurements
         dam_dict = {
             **dam.__dict__,
+            "border_geometry": flip_coordinates(dam.border_geometry),
             "display_name": node.display_name,
             "latitude": node.latitude,
             "longitude": node.longitude,
@@ -340,6 +367,7 @@ def read_dam(dam_id: UUID, db: Session = Depends(get_db)):
     # Return combined dam info
     return {
         **dam.__dict__,
+        "border_geometry": flip_coordinates(dam.border_geometry),
         "display_name": node.display_name,
         "latitude": node.latitude,
         "longitude": node.longitude,
