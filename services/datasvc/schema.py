@@ -166,7 +166,7 @@ class ShortestPathResponse(BaseModel):
 class PointNode(BaseModel):
     id: Literal["point"]  # Special ID to identify this as a point node
     node_type: Literal["point"]
-    display_name: str = "Current Location"
+    display_name: str = "Вашия адрес"
     latitude: float
     longitude: float
     distance_from_start: float = 0.0

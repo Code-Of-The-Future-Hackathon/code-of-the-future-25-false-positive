@@ -589,7 +589,7 @@ def get_route_to_closest_dam_from_point(
     )
     
     # Calculate distances from the point
-    path_nodes = [point_node] + path_response.path
+    path_nodes = [point_node] + path_response["path"]
     
     # Update distances_from_start for all nodes in the path
     current_distance = 0.0
@@ -599,23 +599,30 @@ def get_route_to_closest_dam_from_point(
         
         # Calculate distance between nodes
         distance = calculate_spherical_distance(
-            float(prev_node.latitude),
-            float(prev_node.longitude),
-            float(curr_node.latitude),
-            float(curr_node.longitude)
+            float(prev_node["latitude"] if isinstance(prev_node, dict) else prev_node.latitude),
+            float(prev_node["longitude"] if isinstance(prev_node, dict) else prev_node.longitude),
+            float(curr_node["latitude"]),
+            float(curr_node["longitude"])
         ) * 1000  # Convert km to meters
         
         current_distance += float(distance)
-        curr_node.distance_from_start = current_distance
+        curr_node["distance_from_start"] = current_distance
     
     # Create place info
     place_info = {
-        **containing_place.__dict__,
+        "id": containing_place.id,
         "display_name": containing_place_node.display_name,
         "latitude": float(containing_place_node.latitude),
         "longitude": float(containing_place_node.longitude),
         "created_at": containing_place_node.created_at,
         "updated_at": containing_place_node.updated_at,
+        "population": containing_place.population,
+        "consumption_per_capita": float(containing_place.consumption_per_capita),
+        "water_price": float(containing_place.water_price),
+        "non_dam_incoming_flow": float(containing_place.non_dam_incoming_flow),
+        "radius": float(containing_place.radius),
+        "municipality": containing_place.municipality,
+        "closest_dam_id": containing_place.closest_dam_id
     }
     
     return {
