@@ -39,6 +39,22 @@ const MapVisuals = ({ dams }: MapVisualsProps) => {
 		year: 2025,
 		month: "Февруари",
 	});
+	const months = [
+		"Януари",
+		"Февруари",
+		"Март",
+		"Април",
+		"Май",
+		"Юни",
+		"Юли",
+		"Август",
+		"Септември",
+		"Октомври",
+		"Ноември",
+		"Декември",
+	];
+	const currentMonthInNumber = months.indexOf(time.month) + 1;
+
 	const [isCardVisible, setIsCardVisible] = useState(false);
 	const [isAddressPopupVisible, setIsAddressPopupVisible] = useState(false);
 	const [selectedDam, setSelectedDam] = useState<Dam | null>(null);
@@ -83,6 +99,35 @@ const MapVisuals = ({ dams }: MapVisualsProps) => {
 	useEffect(() => {
 		setIsAddressPopupVisible(selectedMap === "2");
 	}, [selectedMap]);
+
+	const [polylineCoords, setPolylineCoords] = useState([]);
+
+	useEffect(() => {
+		fetch(
+			`http://localhost:8001/tiles/dam1/${time.year}/${currentMonthInNumber}/geojson`,
+		) // Adjust path as necessary
+			.then((response) => response.json())
+			.then((data) => {
+				const coords = [];
+				data.features.forEach((feature) => {
+					if (feature.geometry.type === "Polygon") {
+						coords.push(
+							...feature.geometry.coordinates[0].map(
+								([lng, lat]) => [lat, lng],
+							),
+						);
+					} else if (feature.geometry.type === "LineString") {
+						coords.push(
+							...feature.geometry.coordinates.map(
+								([lng, lat]) => [lat, lng],
+							),
+						);
+					}
+				});
+				setPolylineCoords(coords);
+			})
+			.catch((error) => console.error("Error loading GeoJSON:", error));
+	}, [time]);
 
 	return (
 		<div className="relative h-screen w-screen overflow-hidden">
@@ -154,7 +199,12 @@ const MapVisuals = ({ dams }: MapVisualsProps) => {
 			)}
 
 			<MapContainer
-				center={[42.4633, 23.6122]}
+				center={
+					// dams
+					// ? [dams[0].latitude, dams[0].longitude]
+					// : [42.4633, 23.6122]
+					[43.0436, 26.7511]
+				}
 				zoom={13}
 				className="h-full w-full z-0"
 			>
@@ -175,16 +225,15 @@ const MapVisuals = ({ dams }: MapVisualsProps) => {
 						</div>
 					))}
 				{selectedMap == "2" && (
-					<>
-						<Polyline
-							pathOptions={{ color: "blue" }}
-							positions={[
-								[42.43967, 23.63365],
-								[42.51703, 23.53495],
-							]}
-						/>
-					</>
+					<Polyline
+						pathOptions={{ color: "blue" }}
+						positions={[
+							[42.43967, 23.63365],
+							[42.51703, 23.53495],
+						]}
+					/>
 				)}
+
 				{selectedMap == "2" && (
 					<div className="absolute left-5 top-1/2 transform -translate-y-1/2 z-[10000] rounded-lg">
 						<RouteInfo
@@ -195,6 +244,18 @@ const MapVisuals = ({ dams }: MapVisualsProps) => {
 					</div>
 				)}
 
+				{selectedMap == "3" && (
+					<>
+						<TileLayer
+							url={`http://localhost:8001/tiles/dam1/${time.year}/${currentMonthInNumber}/{z}/{x}/{y}.png`}
+							crossOrigin={true} // Ensure cross-origin requests work
+							attribution="Custom Tile Server"
+						/>
+						{polylineCoords.length > 0 && (
+							<Polyline positions={polylineCoords} color="blue" />
+						)}
+					</>
+				)}
 				<MapRelocation />
 			</MapContainer>
 		</div>
