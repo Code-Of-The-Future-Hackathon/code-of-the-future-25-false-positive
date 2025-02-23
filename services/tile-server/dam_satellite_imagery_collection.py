@@ -1,12 +1,13 @@
 import calendar
 import os
-
 import dotenv
+
 from PIL import Image
+from datetime import datetime, timedelta
 from sentinelhub import SHConfig, SentinelHubRequest, DataCollection, MimeType, CRS, BBox, bbox_to_dimensions, \
     MosaickingOrder, to_utm_bbox
 
-from geo_util import create_georeferenced_tiff, generate_tiles_with_gdal2tiles, generate_tiles_with_gdal
+from geo_util import create_georeferenced_tiff, generate_tiles_with_gdal2tiles
 
 # Sentinel Hub Credentials (Replace with your actual credentials)
 CLIENT_ID = dotenv.get_key(".env", "CLIENT_ID")
@@ -60,14 +61,15 @@ def max_resolution_for_bbox(bbox: BBox) -> float:
 
 
 # Function to request Sentinel-2 imagery
-def load_dam_tiles(year, month, dam_id, coord_bbox):
+def collect_dam_satellite_imagery(year, month, dam_id, coord_bbox):
     """
-    Fetches a Sentinel-2 image for a given bounding box and time range, and saves it as a PNG file.
-    :param start_date: YYYY-MM-DD
-    :param end_date:  YYYY-MM-DD
-    :param output_file: Name of the output PNG file
-    :param coord_bbox: Bounding box in (min_lon, min_lat, max_lon, max_lat) order
-    :return:
+    Collects satellite imagery for a specified dam and time period.
+
+    :param year: The year of the imagery (e.g., 2023).
+    :param month: The month of the imagery (1-12).
+    :param dam_id: The identifier for the dam.
+    :param coord_bbox: The bounding box coordinates (min_lon, min_lat, max_lon, max_lat).
+    :return: None
     """
 
     bbox = BBox(bbox=coord_bbox, crs=CRS.WGS84)
@@ -113,22 +115,58 @@ def load_dam_tiles(year, month, dam_id, coord_bbox):
 
     im.save(f"{path}/img.png")
 
-    geo_tiff = f"{path}/geo_img.tif"
+    create_georeferenced_tiff(f"{path}/img.png", f"{path}/geo_img.tif", coord_bbox)
 
-    create_georeferenced_tiff(f"{path}/img.png", geo_tiff, coord_bbox)
+    print(f"Satellite image saved to {path}")
 
-    generate_tiles_with_gdal2tiles(geo_tiff, path, zoom_range="0-16")
-    #generate_tiles_with_gdal(geo_tiff, path, zoom_range=(0, 16))
+def create_dam_satellite_tiles(year, month, dam_id, coord_bbox):
+    """
+    Generates XYZ tiles from a georeferenced image file and saves them in a specified directory.
+    :param year: The year of the image.
+    :param month: The month of the image.
+    :param dam_id: The ID of the dam.
+    :param coord_bbox: The bounding box of the image in (min_lon, min_lat, max_lon, max_lat) format.
+    """
+    path = f"tiles/{dam_id}/{year}/{month}"
+
+    os.makedirs(path, exist_ok=True)
+
+    generate_tiles_with_gdal2tiles(f"{path}/geo_img.tif", path, zoom_range="0-16")
 
     print(f"Tiles saved to {path}")
 
     os.remove(f"{path}/img.png")
 
+def automate_imagery_creation(start_year, start_month, end_year, end_month, dam_id, coord_bbox):
+    """
+    Automates imagery creation from start date to end date by looping through each month.
+    """
+    current_date = datetime(start_year, start_month, 1)
+    end_date = datetime(end_year, end_month, 1)
+
+    while current_date <= end_date:
+        year, month = current_date.year, current_date.month
+        print(f"\nProcessing: {year}-{month:02d}")
+
+        try:
+            collect_dam_satellite_imagery(year, month, dam_id, coord_bbox)
+            create_dam_satellite_tiles(year, month, dam_id, coord_bbox)
+        except Exception as e:
+            print(f"Error processing {year}-{month:02d}: {e}")
+
+        # Move to the next month
+        next_month = current_date.month + 1
+        next_year = current_date.year + (1 if next_month > 12 else 0)
+        current_date = datetime(next_year, 1 if next_month > 12 else next_month, 1)
+
 
 if __name__ == "__main__":
-    year = 2023
-    month = 1
+    start_year = 2020
+    start_month = 1
+    end_year = 2025
+    end_month = 2
     bbox = (26.665371, 43.013685, 26.820627, 43.105996)
+    dam_id = "feb0577f-335b-4516-a148-21d27f40ad5e"
 
-    # Example usage
-    load_dam_tiles(year, month, "dam1", bbox)
+    # Run the automation for the specified date range
+    automate_imagery_creation(start_year, start_month, end_year, end_month, dam_id, bbox)

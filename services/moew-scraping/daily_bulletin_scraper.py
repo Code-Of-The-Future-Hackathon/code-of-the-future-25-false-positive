@@ -1,7 +1,10 @@
+import os
 import re
+import time
 
 import pandas as pd
 import tabula
+from datetime import datetime, timedelta
 
 
 class DamReader:
@@ -13,8 +16,11 @@ class DamReader:
 
         request = self.endpoint.format(date_day, date_month, date_year)
 
-        tables = tabula.read_pdf(request, pages='all')
-        return self.preprocess(tables)
+        try:
+            tables = tabula.read_pdf(request, pages='all')
+            return self.preprocess(tables)
+        except:
+            return pd.DataFrame()
 
     def preprocess(self, tables):
         def convert_to_float(value: str) -> list[float]:
@@ -53,11 +59,11 @@ class DamReader:
             # Iterate over the rows of the dataframe
             for i, row in df.iterrows():
                 # Split the first column into three parts
-                parts = row[0].split(maxsplit=2)
+                parts = row.iloc[0].split(maxsplit=2)
 
-                parts.extend(convert_to_float(row[1]))
+                parts.extend(convert_to_float(row.iloc[1]))
 
-                parts.extend(convert_to_float(row[2]))
+                parts.extend(convert_to_float(row.iloc[2]))
 
                 rows.append(parts)
 
@@ -105,7 +111,7 @@ class DamReader:
 
         # Find the start index
         for i, row in df.iterrows():
-            if row[0] == 'No БД Язовир':
+            if row.iloc[0] == 'No БД Язовир':
                 start_index = i + 4
                 break
 
@@ -141,7 +147,7 @@ class DamReader:
 
         for df in data_cont:
             if df.empty:
-                continue
+                break
 
             useful_data = pd.concat([useful_data, process_later_tables(df)], ignore_index=True)
 
@@ -149,11 +155,40 @@ class DamReader:
         return useful_data
 
 
-if __name__ == '__main__':
+def automate_scraping(start_date: str, end_date: str):
     DAMS_ENDPOINT = 'https://www.moew.government.bg/static/media/ups/tiny/Daily%20Bulletin/{}{}{}_Bulletin_Daily.pdf'
-
     dam_reader = DamReader(DAMS_ENDPOINT)
+    start = datetime.strptime(start_date, '%d.%m.%Y')
+    end = datetime.strptime(end_date, '%d.%m.%Y')
+    delta = timedelta(days=1)
 
-    date = '01.01.2021'
+    save_folder = 'dam_data'
 
-    data = dam_reader.read(date)
+    os.makedirs(save_folder, exist_ok=True)
+
+    while start <= end:
+        date_str = start.strftime('%d.%m.%Y')
+        print(f"Processing {date_str}...")
+        time.sleep(2)
+        data = dam_reader.read(date_str)
+        if not data.empty:
+            filename = f"dam_data/{date_str.replace('.', '_')}.csv"
+            data.to_csv(filename, index=False)
+            print(f"Saved {filename}")
+        else:
+            print(f"No data available for {date_str}")
+        start += delta
+
+
+if __name__ == '__main__':
+    automate_scraping('01.01.2022', '31.12.2022')
+
+    #DAMS_ENDPOINT = 'https://www.moew.government.bg/static/media/ups/tiny/Daily%20Bulletin/{}{}{}_Bulletin_Daily.pdf'
+#
+    #dam_reader = DamReader(DAMS_ENDPOINT)
+#
+    #date = '01.01.2023'
+#
+    #data = dam_reader.read(date)
+#
+    #print(data)
