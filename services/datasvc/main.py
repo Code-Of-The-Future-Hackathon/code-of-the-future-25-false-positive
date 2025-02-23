@@ -2,6 +2,7 @@ from uuid import UUID
 import uuid
 
 from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session, aliased
 from sqlalchemy.sql import text
 from decimal import Decimal
@@ -15,6 +16,15 @@ from .utils import calculate_spherical_distance
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="False Positive")
+
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allow all origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allow all methods
+    allow_headers=["*"],  # Allow all headers
+)
 
 
 # Node endpoints
@@ -261,91 +271,73 @@ def create_dam(dam: schema.DamCreate, db: Session = Depends(get_db)):
 
 
 @app.get("/dams", response_model=list[schema.Dam])
-def read_dams(
-    skip: int = 0, 
-    limit: int = 100, 
-    search: str = None, 
-    db: Session = Depends(get_db)
-):
-    # Base query joining Dam with its Node
-    PlaceNode = aliased(models.Node)
-    query = (
-        db.query(models.Dam, models.Node, models.Place, PlaceNode.display_name.label('place_display_name'))
+def read_dams(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    # Get dams with their nodes
+    dams = (
+        db.query(models.Dam, models.Node)
         .join(models.Node, models.Dam.id == models.Node.id)
-        .outerjoin(models.dam_places, models.Dam.id == models.dam_places.c.dam_id)
-        .outerjoin(models.Place, models.dam_places.c.place_id == models.Place.id)
-        .outerjoin(PlaceNode, models.Place.id == PlaceNode.id)
-    )
-    
-    if search:
-        search_term = f"%{search}%"
-        query = query.filter(
-            PlaceNode.display_name.ilike(search_term) |
-            models.Dam.municipality.ilike(search_term) |
-            PlaceNode.display_name.ilike(search_term)
-        )
-    
-    # First get the dam IDs we want to return
-    dam_ids = [
-        dam_id for dam_id, in 
-        query.with_entities(models.Dam.id)
-        .distinct()
         .offset(skip)
         .limit(limit)
         .all()
-    ]
-    
-    # Then fetch complete data for these dams
-    final_query = (
-        db.query(
-            models.Dam,
-            models.Node,
-            models.Place,
-            PlaceNode.display_name.label('place_display_name')
-        )
-        .join(models.Node, models.Dam.id == models.Node.id)
-        .outerjoin(models.dam_places, models.Dam.id == models.dam_places.c.dam_id)
-        .outerjoin(models.Place, models.dam_places.c.place_id == models.Place.id)
-        .outerjoin(PlaceNode, models.Place.id == PlaceNode.id)
-        .filter(models.Dam.id.in_(dam_ids))
     )
     
-    # Process results
-    results = final_query.all()
+    result = []
+    for dam, node in dams:
+        # Get last 2 measurements for this dam
+        measurements = (
+            db.query(models.DamBulletinMeasurement)
+            .filter(models.DamBulletinMeasurement.dam_id == dam.id)
+            .order_by(models.DamBulletinMeasurement.timestamp.desc())
+            .limit(2)
+            .all()
+        )
+        # Reverse to get chronological order
+        measurements.reverse()
+        
+        # Combine dam info with node info and measurements
+        dam_dict = {
+            **dam.__dict__,
+            "display_name": node.display_name,
+            "latitude": node.latitude,
+            "longitude": node.longitude,
+            "created_at": node.created_at,
+            "updated_at": node.updated_at,
+            "places": [{"id": place.id, "display_name": db.query(models.Node).get(place.id).display_name} 
+                      for place in dam.places],
+            "measurements": measurements
+        }
+        result.append(dam_dict)
     
-    # Group results by dam
-    dams_dict = {}
-    for dam, node, place, place_display_name in results:
-        if dam.id not in dams_dict:
-            dams_dict[dam.id] = {
-                **dam.__dict__,
-                "display_name": node.display_name,
-                "latitude": node.latitude,
-                "longitude": node.longitude,
-                "created_at": node.created_at,
-                "updated_at": node.updated_at,
-                "places": []
-            }
-        if place and place.id:  # Only add place if it exists
-            place_info = {"id": place.id, "display_name": place_display_name}
-            if place_info not in dams_dict[dam.id]["places"]:
-                dams_dict[dam.id]["places"].append(place_info)
-    
-    # Return results in the same order as the IDs
-    return [dams_dict[dam_id] for dam_id in dam_ids]
+    return result
 
 
 @app.get("/dams/{dam_id}", response_model=schema.Dam)
 def read_dam(dam_id: UUID, db: Session = Depends(get_db)):
+    # Get dam with its node
     result = (
         db.query(models.Dam, models.Node)
         .join(models.Node, models.Dam.id == models.Node.id)
         .filter(models.Dam.id == dam_id)
         .first()
     )
-    if result is None:
+    
+    if not result:
         raise HTTPException(status_code=404, detail="Dam not found")
+    
     dam, node = result
+    
+    # Get last 2 measurements for this dam
+    measurements = (
+        db.query(models.DamBulletinMeasurement)
+        .filter(models.DamBulletinMeasurement.dam_id == dam_id)
+        .order_by(models.DamBulletinMeasurement.timestamp.desc())
+        .limit(2)
+        .all()
+    )
+    # Reverse to get chronological order
+    measurements.reverse()
+    
+    # Return combined dam info
     return {
         **dam.__dict__,
         "display_name": node.display_name,
@@ -354,7 +346,8 @@ def read_dam(dam_id: UUID, db: Session = Depends(get_db)):
         "created_at": node.created_at,
         "updated_at": node.updated_at,
         "places": [{"id": place.id, "display_name": db.query(models.Node).get(place.id).display_name} 
-                  for place in dam.places]
+                  for place in dam.places],
+        "measurements": measurements
     }
 
 
@@ -422,6 +415,25 @@ def update_dam(dam_id: UUID, dam: schema.DamUpdate, db: Session = Depends(get_db
     except Exception as e:
         db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/dams/{dam_id}/measurements", response_model=list[schema.DamBulletinMeasurement])
+def get_dam_measurements(dam_id: UUID, db: Session = Depends(get_db)):
+    return (
+        db.query(models.DamBulletinMeasurement)
+        .filter(models.DamBulletinMeasurement.dam_id == dam_id)
+        .order_by(models.DamBulletinMeasurement.timestamp.asc())
+        .all()
+    )
+
+
+@app.post("/dams/{dam_id}/measurements", response_model=schema.DamBulletinMeasurement)
+def create_dam_measurement(dam_id: UUID, measurement: schema.DamBulletinMeasurementCreate, db: Session = Depends(get_db)):
+    db_measurement = models.DamBulletinMeasurement(**measurement.model_dump())
+    db.add(db_measurement)
+    db.commit()
+    db.refresh(db_measurement)
+    return db_measurement
 
 
 # Place endpoints
@@ -707,20 +719,103 @@ def read_edge(edge_id: UUID, db: Session = Depends(get_db)):
 
 
 # Dam Bulletin Measurement endpoints
-@app.post("/measurements", response_model=schema.DamBulletinMeasurement)
-def create_measurement(
-    measurement: schema.DamBulletinMeasurementCreate, db: Session = Depends(get_db)
-):
-    db_measurement = models.DamBulletinMeasurement(**measurement.model_dump())
-    db.add(db_measurement)
-    db.commit()
-    db.refresh(db_measurement)
+@app.get("/measurements", response_model=list[schema.DamBulletinMeasurement])
+def read_measurements(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    return (
+        db.query(models.DamBulletinMeasurement)
+        .order_by(models.DamBulletinMeasurement.timestamp.asc())
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+
+
+@app.get("/measurements/{measurement_id}", response_model=schema.DamBulletinMeasurement)
+def read_measurement(measurement_id: UUID, db: Session = Depends(get_db)):
+    db_measurement = db.query(models.DamBulletinMeasurement).filter(models.DamBulletinMeasurement.id == measurement_id).first()
+    if db_measurement is None:
+        raise HTTPException(status_code=404, detail="Measurement not found")
     return db_measurement
 
 
-@app.get("/measurements", response_model=list[schema.DamBulletinMeasurement])
-def read_measurements(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    return db.query(models.DamBulletinMeasurement).offset(skip).limit(limit).all()
+# Dam Prediction endpoints
+@app.post("/dams/{dam_id}/predictions", response_model=schema.DamPrediction)
+def create_dam_prediction(dam_id: UUID, prediction: schema.DamPredictionCreate, db: Session = Depends(get_db)):
+    # Get the dam's max volume first
+    dam = db.query(models.Dam).filter(models.Dam.id == prediction.dam_id).first()
+    if not dam:
+        raise HTTPException(status_code=404, detail="Dam not found")
+    
+    db_prediction = models.DamPrediction(**prediction.model_dump())
+    db.add(db_prediction)
+    db.commit()
+    db.refresh(db_prediction)
+    
+    # Calculate fill percentage
+    db_prediction.fill_percentage = (db_prediction.fill_volume / dam.max_volume) * 100
+    
+    return db_prediction
+
+
+@app.get("/dams/{dam_id}/predictions", response_model=list[schema.DamPrediction])
+def get_dam_predictions(dam_id: UUID, db: Session = Depends(get_db)):
+    # Get the dam's max volume first
+    dam = db.query(models.Dam).filter(models.Dam.id == dam_id).first()
+    if not dam:
+        raise HTTPException(status_code=404, detail="Dam not found")
+    
+    # Get predictions and calculate percentages
+    predictions = (
+        db.query(models.DamPrediction)
+        .filter(models.DamPrediction.dam_id == dam_id)
+        .order_by(models.DamPrediction.timestamp.asc())
+        .all()
+    )
+    
+    for prediction in predictions:
+        prediction.fill_percentage = (prediction.fill_volume / dam.max_volume) * 100
+    
+    return predictions
+
+
+@app.get("/predictions", response_model=list[schema.DamPrediction])
+def read_predictions(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    # Get predictions with their corresponding dams
+    predictions = (
+        db.query(models.DamPrediction, models.Dam)
+        .join(models.Dam, models.DamPrediction.dam_id == models.Dam.id)
+        .order_by(models.DamPrediction.timestamp.asc())
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+    
+    # Calculate fill percentages
+    result = []
+    for prediction, dam in predictions:
+        prediction.fill_percentage = (prediction.fill_volume / dam.max_volume) * 100
+        result.append(prediction)
+    
+    return result
+
+
+@app.get("/predictions/{prediction_id}", response_model=schema.DamPrediction)
+def read_prediction(prediction_id: UUID, db: Session = Depends(get_db)):
+    # Get prediction with its dam
+    result = (
+        db.query(models.DamPrediction, models.Dam)
+        .join(models.Dam, models.DamPrediction.dam_id == models.Dam.id)
+        .filter(models.DamPrediction.id == prediction_id)
+        .first()
+    )
+    
+    if not result:
+        raise HTTPException(status_code=404, detail="Prediction not found")
+    
+    prediction, dam = result
+    prediction.fill_percentage = (prediction.fill_volume / dam.max_volume) * 100
+    
+    return prediction
 
 
 # Satellite Image endpoints

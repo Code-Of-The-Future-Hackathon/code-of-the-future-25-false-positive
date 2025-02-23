@@ -114,6 +114,17 @@ class DamBulletinMeasurement(Base):
     avg_outgoing_flow = Column(Numeric)  # m³/s
 
 
+class DamPrediction(Base):
+    __tablename__ = "dam_predictions"
+    __table_args__ = {"schema": "false_positive"}
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    dam_id = Column(UUID(as_uuid=True), ForeignKey("false_positive.dams.id"), nullable=False)
+    timestamp = Column(DateTime(timezone=True), nullable=False)
+    fill_volume = Column(Numeric)  # m³
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
 class SatelliteImage(Base):
     __tablename__ = "satellite_images"
     __table_args__ = {"schema": "false_positive"}

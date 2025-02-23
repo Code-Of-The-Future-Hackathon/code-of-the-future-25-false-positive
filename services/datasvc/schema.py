@@ -37,6 +37,76 @@ class Node(NodeBase):
         from_attributes = True
 
 
+class PlaceRef(BaseModel):
+    id: UUID4
+    display_name: str
+
+    class Config:
+        from_attributes = True
+
+
+class DamBulletinMeasurementBase(BaseModel):
+    dam_id: UUID4
+    timestamp: datetime
+    volume: Decimal
+    fill_volume: Decimal
+    avg_incoming_flow: Decimal
+    avg_outgoing_flow: Decimal
+
+
+class DamBulletinMeasurementCreate(DamBulletinMeasurementBase):
+    pass
+
+
+class DamBulletinMeasurement(DamBulletinMeasurementBase):
+    id: UUID4
+
+    class Config:
+        from_attributes = True
+
+
+class DamBase(BaseModel):
+    model_config = {"arbitrary_types_allowed": True}
+    
+    border_geometry: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="GeoJSON MultiPolygon object"
+    )
+    max_volume: Decimal
+    description: str = ""
+    municipality: str = ""
+    owner: Optional[str] = None
+    owner_contact: Optional[str] = None
+    operator: Optional[str] = None
+    operator_contact: Optional[str] = None
+
+
+class DamCreate(DamBase, NodeFieldsMixin):
+    place_ids: list[UUID4] = Field(default_factory=list)
+
+
+class DamUpdate(BaseModel):
+    model_config = {"arbitrary_types_allowed": True}
+    
+    display_name: Optional[str] = None
+    latitude: Optional[Decimal] = None
+    longitude: Optional[Decimal] = None
+    border_geometry: Optional[Dict[str, Any]] = None
+    max_volume: Optional[Decimal] = None
+    description: Optional[str] = None
+    municipality: Optional[str] = None
+    owner: Optional[str] = None
+    owner_contact: Optional[str] = None
+    operator: Optional[str] = None
+    operator_contact: Optional[str] = None
+    place_ids: Optional[list[UUID4]] = None
+
+
+class Dam(DamBase, NodeResponseMixin):
+    places: list[PlaceRef] = Field(default_factory=list)
+    measurements: list[DamBulletinMeasurement] = Field(default_factory=list, description="Last 2 measurements in chronological order")
+
+
 class ShortestPathDamData(BaseModel):
     max_volume: Decimal
     description: str
@@ -114,55 +184,6 @@ class Edge(EdgeBase):
         from_attributes = True
 
 
-class PlaceRef(BaseModel):
-    id: UUID4
-    display_name: str
-
-    class Config:
-        from_attributes = True
-
-
-class DamBase(BaseModel):
-    model_config = {"arbitrary_types_allowed": True}
-    
-    border_geometry: Optional[Dict[str, Any]] = Field(
-        default=None,
-        description="GeoJSON MultiPolygon object"
-    )
-    max_volume: Decimal
-    description: str = ""
-    municipality: str = ""
-    owner: Optional[str] = None
-    owner_contact: Optional[str] = None
-    operator: Optional[str] = None
-    operator_contact: Optional[str] = None
-
-
-class DamCreate(DamBase, NodeFieldsMixin):
-    place_ids: list[UUID4] = Field(default_factory=list)
-
-
-class DamUpdate(BaseModel):
-    model_config = {"arbitrary_types_allowed": True}
-    
-    display_name: Optional[str] = None
-    latitude: Optional[Decimal] = None
-    longitude: Optional[Decimal] = None
-    border_geometry: Optional[Dict[str, Any]] = None
-    max_volume: Optional[Decimal] = None
-    description: Optional[str] = None
-    municipality: Optional[str] = None
-    owner: Optional[str] = None
-    owner_contact: Optional[str] = None
-    operator: Optional[str] = None
-    operator_contact: Optional[str] = None
-    place_ids: Optional[list[UUID4]] = None
-
-
-class Dam(DamBase, NodeResponseMixin):
-    places: list[PlaceRef] = Field(default_factory=list)
-
-
 class PlaceBase(BaseModel):
     population: int
     consumption_per_capita: Decimal
@@ -197,21 +218,20 @@ class Junction(JunctionBase, NodeResponseMixin):
     pass
 
 
-class DamBulletinMeasurementBase(BaseModel):
+class DamPredictionBase(BaseModel):
     dam_id: UUID4
     timestamp: datetime
-    volume: Decimal
     fill_volume: Decimal
-    avg_incoming_flow: Decimal
-    avg_outgoing_flow: Decimal
 
 
-class DamBulletinMeasurementCreate(DamBulletinMeasurementBase):
+class DamPredictionCreate(DamPredictionBase):
     pass
 
 
-class DamBulletinMeasurement(DamBulletinMeasurementBase):
+class DamPrediction(DamPredictionBase):
     id: UUID4
+    created_at: datetime
+    fill_percentage: Decimal = Field(description="Percentage of the dam's maximum volume that is filled")
 
     class Config:
         from_attributes = True
