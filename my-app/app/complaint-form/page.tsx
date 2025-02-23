@@ -35,8 +35,11 @@ const dams = [
 	"Язовир Бояново",
 ];
 
+const API_BASE_URL = "http://localhost:8000";
+
 const complaintOptions = {
-	"water-loss-route": "Открих, че по маршрута на моята вода, има много загуби.",
+	"water-loss-route":
+		"Открих, че по маршрута на моята вода, има много загуби.",
 	"future-bad":
 		"Открих, че според изчисленията на тази платформа, в бъдеще язовирът ми ще претърпи бедствие.",
 	"water-polution": "Забелязах, че водата ми е замърсена.",
@@ -47,11 +50,12 @@ const complaintOptions = {
 
 type FormData = {
 	name?: string;
-	email?: string;
+	user_email?: string;
 	phone?: string;
 	address?: string;
-	dam?: string;
-	complaint?: Record<string, string>;
+	dam_id?: string;
+	description?: string;
+	subject?: string;
 	complaint_text?: string;
 };
 
@@ -69,14 +73,14 @@ export default function ComplaintFormPage() {
 	};
 
 	const handleDamSelect = (value: string) => {
-		setFormData((prev) => ({ ...prev, dam: value }));
+		setFormData((prev) => ({ ...prev, dam_id: value }));
 		setDamOpen(false);
 	};
 
 	const handleComplaintSelect = (key: keyof typeof complaintOptions) => {
 		setFormData((prev) => ({
 			...prev,
-			complaint: { key, value: complaintOptions[key] },
+			subject: complaintOptions[key],
 		}));
 		setComplaintOpen(false);
 	};
@@ -85,9 +89,48 @@ export default function ComplaintFormPage() {
 
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
-		console.log(formData);
-		setFormData(null);
-		handleNext();
+
+		setFormData((prev) => {
+			if (!prev) return null;
+
+			const newDescription = `Подавам сигнал за язовир ${prev.dam_id ?? "Неизвестен"} за проблем ${prev.subject ?? "Неуточнен"}.${
+				prev.complaint_text
+					? " Допълнителна информация: " + prev.complaint_text
+					: ""
+			}`;
+
+			const updatedFormData = { ...prev, description: newDescription };
+
+			submitComplaint(updatedFormData);
+
+			return updatedFormData;
+		});
+
+		setTimeout(() => {
+			setFormData(null);
+			handleNext();
+		}, 100);
+	};
+
+	const submitComplaint = async (complaint: FormData) => {
+		try {
+			const response = await fetch(`${API_BASE_URL}/complaints`, {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify(complaint),
+			});
+
+			if (!response.ok) {
+				throw new Error("Failed to submit complaint");
+			}
+
+			const data = await response.json();
+			return data;
+		} catch (error) {
+			console.error("Error submitting complaint:", error);
+		}
 	};
 
 	return (
@@ -95,8 +138,8 @@ export default function ComplaintFormPage() {
 			<Header />
 			<main className="container mx-auto px-4 py-8 flex flex-col items-center flex-grow">
 				<h1 className="text-4xl font-bold p-4 text-center mb-8">
-					<span className="text-red-600">Подай сигнал</span>, <br /> подобри
-					своето бъдеще!
+					<span className="text-red-600">Подай сигнал</span>, <br />{" "}
+					подобри своето бъдеще!
 				</h1>
 
 				<div className="max-w-2xl w-full">
@@ -112,10 +155,15 @@ export default function ComplaintFormPage() {
 									key={number}
 									className={cn(
 										"flex h-8 w-8 items-center justify-center rounded-full border-2 border-gray-300 bg-white text-sm font-semibold",
-										step >= number && "border-red-600 bg-red-600 text-white",
+										step >= number &&
+											"border-red-600 bg-red-600 text-white",
 									)}
 								>
-									{step > number ? <Check className="h-4 w-4" /> : number}
+									{step > number ? (
+										<Check className="h-4 w-4" />
+									) : (
+										number
+									)}
 								</div>
 							))}
 						</div>
@@ -133,7 +181,9 @@ export default function ComplaintFormPage() {
 								{step === 1 && (
 									<>
 										<div className="mb-4">
-											<Label htmlFor="name">Пълно име</Label>
+											<Label htmlFor="name">
+												Пълно име
+											</Label>
 											<Input
 												id="name"
 												name="name"
@@ -145,7 +195,9 @@ export default function ComplaintFormPage() {
 
 										<div className="mb-4 grid grid-cols-2 gap-4">
 											<div className="mb-4">
-												<Label htmlFor="phone">Телефонен номер</Label>
+												<Label htmlFor="phone">
+													Телефонен номер
+												</Label>
 												<Input
 													id="phone"
 													name="phone"
@@ -157,12 +209,14 @@ export default function ComplaintFormPage() {
 											</div>
 
 											<div className="mb-4">
-												<Label htmlFor="phone">Имейл адрес</Label>
+												<Label htmlFor="phone">
+													Имейл адрес
+												</Label>
 												<Input
-													id="email"
-													name="email"
-													type="email"
-													value={formData?.email}
+													id="user_email"
+													name="user_email"
+													type="user_email"
+													value={formData?.user_email}
 													onChange={handleInputChange}
 													required
 												/>
@@ -170,7 +224,9 @@ export default function ComplaintFormPage() {
 										</div>
 
 										<div className="mb-4">
-											<Label htmlFor="email">Адрес</Label>
+											<Label htmlFor="address">
+												Адрес
+											</Label>
 											<Input
 												id="address"
 												name="address"
@@ -194,14 +250,21 @@ export default function ComplaintFormPage() {
 								{step === 2 && (
 									<>
 										<div className="mb-4">
-											<Label>Язовир, за който искаш да подадеш сигнал:</Label>
-											<Popover open={damOpen} onOpenChange={setDamOpen}>
+											<Label>
+												Язовир, за който искаш да
+												подадеш сигнал:
+											</Label>
+											<Popover
+												open={damOpen}
+												onOpenChange={setDamOpen}
+											>
 												<PopoverTrigger asChild>
 													<Button
 														variant="outline"
 														className="w-full justify-between"
 													>
-														{formData?.dam || "Избери язовир"}
+														{formData?.dam_id ||
+															"Избери язовир"}
 													</Button>
 												</PopoverTrigger>
 												<PopoverContent
@@ -211,7 +274,11 @@ export default function ComplaintFormPage() {
 													{dams.map((dept) => (
 														<div
 															key={dept}
-															onClick={() => handleDamSelect(dept)}
+															onClick={() =>
+																handleDamSelect(
+																	dept,
+																)
+															}
 															className="cursor-pointer p-2 hover:bg-gray-200"
 														>
 															{dept}
@@ -222,7 +289,9 @@ export default function ComplaintFormPage() {
 										</div>
 
 										<div className="mb-4">
-											<Label>За какво подаваш сигнал?</Label>
+											<Label>
+												За какво подаваш сигнал?
+											</Label>
 											<Popover
 												open={complaintOpen}
 												onOpenChange={setComplaintOpen}
@@ -232,14 +301,17 @@ export default function ComplaintFormPage() {
 														variant="outline"
 														className="w-full justify-between overflow-hidden text-gray-400"
 													>
-														{formData?.complaint?.value || "Избери вид сигнал"}
+														{formData?.subject ||
+															"Избери вид сигнал"}
 													</Button>
 												</PopoverTrigger>
 												<PopoverContent
 													align="start"
 													className="w-full max-w-lg p-2 shadow-lg border rounded-lg bg-white"
 												>
-													{Object.entries(complaintOptions).map(
+													{Object.entries(
+														complaintOptions,
+													).map(
 														([key, complaint]) => (
 															<div
 																key={key}
@@ -258,15 +330,19 @@ export default function ComplaintFormPage() {
 											</Popover>
 										</div>
 
-										{formData?.complaint?.key === "other" && (
+										{formData?.subject ===
+											"Друг проблем." && (
 											<div className="mb-4">
 												<Label htmlFor="complaint">
-													Опиши сигнала, който искаш да подадеш:
+													Опиши сигнала, който искаш
+													да подадеш:
 												</Label>
 												<Textarea
-													id="complaint"
-													name="complaint"
-													value={formData?.complaint_text}
+													id="complaintText"
+													name="complaintText"
+													value={
+														formData?.complaint_text
+													}
 													onChange={handleInputChange}
 													required
 												/>
@@ -284,21 +360,33 @@ export default function ComplaintFormPage() {
 								{step === 3 && (
 									<div className="space-y-6 text-center p-2">
 										<p className="text-lg">
-											Благодарим ти за подаденият сигнал. Благодарение на теб,
-											всички сме една стъпка по-близо до решаването на проблема!
+											Благодарим ти за подаденият сигнал.
+											Благодарение на теб, всички сме една
+											стъпка по-близо до решаването на
+											проблема!
 										</p>
 										<p className="text-sm text-muted-foreground">
-											Помогни ни да разпространим информацията, като я споделиш
-											със своите познати и приятели:
+											Помогни ни да разпространим
+											информацията, като я споделиш със
+											своите познати и приятели:
 										</p>
 										<div className="flex justify-center gap-4">
-											<Button variant="outline" size="icon">
+											<Button
+												variant="outline"
+												size="icon"
+											>
 												<BrandFacebook className="h-5 w-5" />
 											</Button>
-											<Button variant="outline" size="icon">
+											<Button
+												variant="outline"
+												size="icon"
+											>
 												<BrandX className="h-5 w-5" />
 											</Button>
-											<Button variant="outline" size="icon">
+											<Button
+												variant="outline"
+												size="icon"
+											>
 												<BrandLinkedin className="h-5 w-5" />
 											</Button>
 										</div>
