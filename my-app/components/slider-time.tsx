@@ -1,6 +1,6 @@
 "use client";
 
-import React, { use, useEffect, useMemo } from "react";
+import React, { useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { Slider } from "@/components/ui/slider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,7 +41,7 @@ export function SliderTime({ className, value, onChange }: SliderTimeProps) {
 			arr.push({ label: `${month} ${year}`, value: i, year, month });
 		}
 		return arr;
-	}, []);
+	}, [months, totalMonths]);
 
 	const pivotIndex = labels.findIndex((l) => l.year === 2025);
 
@@ -63,7 +63,10 @@ export function SliderTime({ className, value, onChange }: SliderTimeProps) {
 						step={1}
 						onValueChange={(val) => {
 							const selectedTime = labels[val[0]];
-							onChange({ year: selectedTime.year, month: selectedTime.month });
+							onChange({
+								year: selectedTime.year,
+								month: selectedTime.month,
+							});
 						}}
 						className={cn("w-full", className)}
 					/>
@@ -74,8 +77,12 @@ export function SliderTime({ className, value, onChange }: SliderTimeProps) {
 								key={index}
 								className={cn(
 									"text-xs text-gray-500",
-									index === pivotIndex ? "text-red-600 font-bold" : "",
-									index % 12 === 0 ? "text-sm font-semibold" : "",
+									index === pivotIndex
+										? "text-red-600 font-bold"
+										: "",
+									index % 12 === 0
+										? "text-sm font-semibold"
+										: "",
 								)}
 								style={{
 									transform: "translateX(-50%)",
@@ -83,7 +90,9 @@ export function SliderTime({ className, value, onChange }: SliderTimeProps) {
 									left: `${(index / (totalMonths - 1)) * 100}%`,
 								}}
 							>
-								{index % 12 === 0 ? label.label.split(" ")[1] : ""}
+								{index % 12 === 0
+									? label.label.split(" ")[1]
+									: ""}
 							</span>
 						))}
 					</div>

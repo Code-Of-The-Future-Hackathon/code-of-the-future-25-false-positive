@@ -59,8 +59,8 @@ const MapVisuals = ({ dams }: MapVisualsProps) => {
 	const [isAddressPopupVisible, setIsAddressPopupVisible] = useState(false);
 	const [selectedDam, setSelectedDam] = useState<Dam | null>(null);
 	const [selectedMap, setSelectedMap] = useState("1");
-	const [calculatedPath, setCalculatedPath] = useState<Path[]>([]);
-	const [calculatedTotalDistance, setCalculatedTotalDistance] = useState(0);
+	const [calculatedPath] = useState<Path[]>([]);
+	const [calculatedTotalDistance] = useState(0);
 	const [userAddress, setUserAddress] = useState<Address | null>(null);
 
 	// FETCH CACLUATED PATH and TOTAL DISTANCE
@@ -205,6 +205,7 @@ const MapVisuals = ({ dams }: MapVisualsProps) => {
 			)}
 
 			<MapContainer
+				// @ts-expect-error because the types are wrong
 				center={
 					// dams
 					// ? [dams[0].latitude, dams[0].longitude]
@@ -216,6 +217,7 @@ const MapVisuals = ({ dams }: MapVisualsProps) => {
 			>
 				<TileLayer
 					url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+					// @ts-expect-error because the types are wrong
 					attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 				/>
 				{(selectedMap == "1" || selectedMap == "3") &&
@@ -224,6 +226,7 @@ const MapVisuals = ({ dams }: MapVisualsProps) => {
 							{dam.border_geometry && (
 								<Polygon
 									pathOptions={{ color: "blue" }}
+									// @ts-expect-error because the types are wrong
 									positions={dam.border_geometry.coordinates}
 									eventHandlers={{
 										click: () => handleDamClick(dam),
@@ -236,8 +239,16 @@ const MapVisuals = ({ dams }: MapVisualsProps) => {
 					<Polyline
 						pathOptions={{ color: "blue" }}
 						positions={[
-							[42.43967, 23.63365],
-							[42.51703, 23.53495],
+							[43.0886591327962, 26.792311928631108],
+							[43.10477623507718, 26.791766937804624],
+							[43.111390978075775, 26.77705218391471],
+							[43.11338023459992, 26.79183506172035],
+							[43.12630882625508, 26.786862019921795],
+							[43.145696591190834, 26.827259470972777],
+							[43.15986678556685, 26.82912598561543],
+							[43.16049296888975, 26.825673932048765],
+							[43.16166308476142, 26.823309855382377],
+							[43.16097928566622, 26.8226545749675],
 						]}
 					/>
 				)}
@@ -256,10 +267,12 @@ const MapVisuals = ({ dams }: MapVisualsProps) => {
 					<>
 						<TileLayer
 							url={`http://localhost:8001/tiles/dam1/${time.year}/${currentMonthInNumber}/{z}/{x}/{y}.png`}
+							// @ts-expect-error because the types are wrong
 							crossOrigin={true} // Ensure cross-origin requests work
 							attribution="Custom Tile Server"
 						/>
 						{polylineCoords.length > 0 && (
+							// @ts-expect-error because the types are wrong
 							<Polyline positions={polylineCoords} color="blue" />
 						)}
 					</>

@@ -8,7 +8,7 @@ interface DamInfoProps {
 	mapType: string;
 }
 
-function DamInfoComponent({ damInfo, onClose, mapType }: DamInfoProps) {
+function DamInfoComponent({ damInfo, onClose }: DamInfoProps) {
 	const latestMeasurement =
 		damInfo.measurements && damInfo.measurements.length > 0
 			? damInfo.measurements[0]
