@@ -11,7 +11,6 @@ interface DamMeasurements {
 	avg_incoming_flow: number | null;
 	avg_outgoing_flow: number | null;
 	fill_volume: number | null;
-	tendency: Tendency | null;
 	id: string;
 }
 
@@ -26,6 +25,8 @@ interface Dam extends Node {
 	operator_contact: string | null;
 	places: Record<string, string>;
 	measurements: DamMeasurements[] | null;
+	tendency: Tendency | null;
+	will_it_dry_up: boolean;
 }
 
 export default Dam;

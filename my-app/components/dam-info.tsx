@@ -1,6 +1,6 @@
-import Dam from "@/interfaces/dam.interface";
-import { Tendency } from "@/interfaces/dam.interface";
+import Dam, { Tendency } from "@/interfaces/dam.interface";
 import { useEffect } from "react";
+import Link from "next/link";
 
 interface DamInfoProps {
 	damInfo: Dam;
@@ -8,87 +8,50 @@ interface DamInfoProps {
 	mapType: string;
 }
 
-// **Function to calculate tendencies**
-const calculateTendency = (measurements: Dam["measurements"]) => {
-	if (!measurements || measurements.length < 2) return measurements;
-
-	return measurements.map((record, index) => {
-		if (index === 0) return { ...record, tendency: null };
-
-		const prevRecord = measurements[index - 1];
-		let tendency: Tendency = Tendency.NO_CHANGE;
-
-		if (record.fill_volume && prevRecord.fill_volume) {
-			if (record.fill_volume > prevRecord.fill_volume) {
-				tendency = Tendency.UP;
-			} else if (record.fill_volume < prevRecord.fill_volume) {
-				tendency = Tendency.DOWN;
-			}
-		}
-
-		return { ...record, tendency };
-	});
-};
-
 function DamInfoComponent({ damInfo, onClose, mapType }: DamInfoProps) {
-	const sortedMeasurements = (damInfo.measurements ?? [])
-		.map((m) => ({
-			...m,
-			timestamp: new Date(m.timestamp),
-			fill_volume: m.fill_volume
-				? parseFloat(m.fill_volume as any)
-				: null,
-			avg_incoming_flow: m.avg_incoming_flow
-				? parseFloat(m.avg_incoming_flow as any)
-				: null,
-			avg_outgoing_flow: m.avg_outgoing_flow
-				? parseFloat(m.avg_outgoing_flow as any)
-				: null,
-			tendency: null,
-		}))
-		.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-
-	const calculatedMeasurements = calculateTendency(sortedMeasurements);
-	const latestMeasurement = calculatedMeasurements[0] || null;
-	const nextMeasurement = calculatedMeasurements[1] || null; // The next closest measurement
-
-	let trendSummary = "Запасът остава стабилен.";
-
-	// **Tendency for mapType "1"**
-	if (mapType === "1" && latestMeasurement && nextMeasurement) {
-		const latestVolume = latestMeasurement.fill_volume;
-		const nextVolume = nextMeasurement.fill_volume;
-
-		if (latestVolume && nextVolume) {
-			const change = latestVolume - nextVolume;
-
-			if (change > 0) {
-				latestMeasurement.tendency = Tendency.UP;
-			} else if (change < 0) {
-				latestMeasurement.tendency = Tendency.DOWN;
-			} else {
-				latestMeasurement.tendency = Tendency.NO_CHANGE;
-			}
-		}
-	}
+	// Get the latest measurement directly from damInfo without extra calculations.
+	const latestMeasurement =
+		damInfo.measurements && damInfo.measurements.length > 0
+			? damInfo.measurements[0]
+			: null;
 
 	useEffect(() => {
 		console.log(damInfo);
 	}, [damInfo]);
 
+	// Determine the color based on the tendency
+	const tendencyColor =
+		damInfo.tendency === Tendency.UP
+			? "text-green-500"
+			: damInfo.tendency === Tendency.DOWN
+				? "text-red-500"
+				: "text-gray-600";
+
 	return (
 		<div className="relative mr-3 p-6 text-center max-w-3xl">
 			<button
 				onClick={onClose}
-				className="absolute top-1 right-1 text-gray-600 hover:text-gray-900 font-bold text-lg"
+				className="absolute top-1 right-1 text-gray-600 hover:text-gray-900 font-bold text-2xl"
 				aria-label="Close"
 			>
 				&times;
 			</button>
 
-			<h2 className="text-xl font-semibold">{damInfo.display_name}</h2>
+			<h2 className="text-xl font-semibold">Име на язовира</h2>
+			<h2 className="text-xl mb-4">{damInfo.display_name}</h2>
+			<h2 className="text-xl font-semibold">Описание</h2>
 			<p className="text-xl mb-4">{damInfo.description}</p>
+			<h2 className="text-xl font-semibold">Община</h2>
 			<p className="text-xl mb-4">{damInfo.municipality}</p>
+			<h2 className="text-xl font-semibold">
+				Отговорна страна и контакти
+			</h2>
+			<p className="text-xl mb-2">
+				{damInfo.operator} - {damInfo.operator_contact}
+			</p>
+			<p className="text-xl mb-3">
+				{damInfo.owner} - {damInfo.owner_contact}
+			</p>
 
 			{latestMeasurement && (
 				<table className="w-full border-collapse border border-gray-300 mt-6">
@@ -96,7 +59,9 @@ function DamInfoComponent({ damInfo, onClose, mapType }: DamInfoProps) {
 						<tr className="border-b border-gray-300">
 							<td className="font-bold p-2 bg-gray-100">Дата</td>
 							<td className="p-2">
-								{latestMeasurement.timestamp.toLocaleDateString()}
+								{new Date(
+									latestMeasurement.timestamp,
+								).toLocaleDateString()}
 							</td>
 						</tr>
 						<tr className="border-b border-gray-300">
@@ -128,35 +93,22 @@ function DamInfoComponent({ damInfo, onClose, mapType }: DamInfoProps) {
 								м<sup>3</sup>/с
 							</td>
 						</tr>
-						{mapType === "1" &&
-							latestMeasurement.tendency !== null && (
-								<tr className="border-b border-gray-300">
-									<td className="font-bold p-2 bg-gray-100">
-										Тенденция
-									</td>
-									<td
-										className={`p-2 font-bold ${
-											latestMeasurement.tendency ===
-											Tendency.UP
-												? "text-green-600"
-												: latestMeasurement.tendency ===
-													  Tendency.DOWN
-													? "text-red-600"
-													: "text-gray-600"
-										}`}
-									>
-										{latestMeasurement.tendency ===
-										Tendency.UP
-											? "⬆ Повишава се"
-											: latestMeasurement.tendency ===
-												  Tendency.DOWN
-												? "⬇ Намалява"
-												: "⏸ Без промяна"}
-									</td>
-								</tr>
-							)}
 					</tbody>
 				</table>
+			)}
+
+			{damInfo.tendency && (
+				<p className={`text-xl font-semibold mt-4 ${tendencyColor}`}>
+					Тенденция: {damInfo.tendency}
+				</p>
+			)}
+
+			{!damInfo.will_it_dry_up && (
+				<Link href="/home#help">
+					<button className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded mt-4">
+						Подай сигнал
+					</button>
+				</Link>
 			)}
 		</div>
 	);
