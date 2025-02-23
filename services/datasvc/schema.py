@@ -1,5 +1,4 @@
 from datetime import date, datetime
-from decimal import Decimal
 from typing import Literal, Optional, Dict, Any, Union
 
 from pydantic import UUID4, BaseModel, EmailStr, Field
@@ -7,8 +6,8 @@ from pydantic import UUID4, BaseModel, EmailStr, Field
 
 class NodeFieldsMixin(BaseModel):
     display_name: str
-    latitude: Decimal
-    longitude: Decimal
+    latitude: float
+    longitude: float
 
 
 class NodeBase(NodeFieldsMixin):
@@ -48,10 +47,10 @@ class PlaceRef(BaseModel):
 class DamBulletinMeasurementBase(BaseModel):
     dam_id: UUID4
     timestamp: datetime
-    volume: Decimal
-    fill_volume: Decimal
-    avg_incoming_flow: Decimal
-    avg_outgoing_flow: Decimal
+    volume: float
+    fill_volume: float
+    avg_incoming_flow: float
+    avg_outgoing_flow: float
 
 
 class DamBulletinMeasurementCreate(DamBulletinMeasurementBase):
@@ -72,7 +71,7 @@ class DamBase(BaseModel):
         default=None,
         description="GeoJSON MultiPolygon object"
     )
-    max_volume: Decimal
+    max_volume: float
     description: str = ""
     municipality: str = ""
     owner: Optional[str] = None
@@ -89,10 +88,10 @@ class DamUpdate(BaseModel):
     model_config = {"arbitrary_types_allowed": True}
     
     display_name: Optional[str] = None
-    latitude: Optional[Decimal] = None
-    longitude: Optional[Decimal] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
     border_geometry: Optional[Dict[str, Any]] = None
-    max_volume: Optional[Decimal] = None
+    max_volume: Optional[float] = None
     description: Optional[str] = None
     municipality: Optional[str] = None
     owner: Optional[str] = None
@@ -108,7 +107,7 @@ class Dam(DamBase, NodeResponseMixin):
 
 
 class ShortestPathDamData(BaseModel):
-    max_volume: Decimal
+    max_volume: float
     description: str
     municipality: str
     owner: Optional[str] = None
@@ -120,10 +119,10 @@ class ShortestPathDamData(BaseModel):
 
 class ShortestPathPlaceData(BaseModel):
     population: int
-    consumption_per_capita: Decimal
-    water_price: Decimal
-    non_dam_incoming_flow: Decimal
-    radius: Decimal
+    consumption_per_capita: float
+    water_price: float
+    non_dam_incoming_flow: float
+    radius: float
     municipality: str
 
     class Config:
@@ -131,9 +130,9 @@ class ShortestPathPlaceData(BaseModel):
 
 
 class ShortestPathJunctionData(BaseModel):
-    max_flow_rate: Decimal
-    current_flow_rate: Optional[Decimal] = None
-    length: Decimal
+    max_flow_rate: float
+    current_flow_rate: Optional[float] = None
+    length: float
     source_node_id: UUID4
     target_node_id: UUID4
 
@@ -145,9 +144,9 @@ class ShortestPathNode(BaseModel):
     id: UUID4
     node_type: str
     display_name: str
-    latitude: Decimal
-    longitude: Decimal
-    distance_from_start: Decimal
+    latitude: float
+    longitude: float
+    distance_from_start: float
     dam_data: Optional[ShortestPathDamData] = None
     place_data: Optional[ShortestPathPlaceData] = None
     junction_data: Optional[ShortestPathJunctionData] = None
@@ -158,7 +157,7 @@ class ShortestPathNode(BaseModel):
 
 class ShortestPathResponse(BaseModel):
     path: list[ShortestPathNode]
-    total_distance: Decimal
+    total_distance: float
 
     class Config:
         from_attributes = True
@@ -168,9 +167,9 @@ class PointNode(BaseModel):
     id: Literal["point"]  # Special ID to identify this as a point node
     node_type: Literal["point"]
     display_name: str = "Current Location"
-    latitude: Decimal
-    longitude: Decimal
-    distance_from_start: Decimal = Decimal('0')
+    latitude: float
+    longitude: float
+    distance_from_start: float = 0.0
 
     class Config:
         from_attributes = True
@@ -178,8 +177,8 @@ class PointNode(BaseModel):
 
 class PointRouteResponse(BaseModel):
     path: list[Union[PointNode, ShortestPathNode]]
-    total_distance: Decimal
-    place: Place  # Include the place we're inside of
+    total_distance: float
+    place: 'Place'
 
     class Config:
         from_attributes = True
@@ -199,7 +198,7 @@ class Edge(EdgeBase):
     id: UUID4
     created_at: datetime
     updated_at: Optional[datetime] = None
-    distance: Decimal
+    distance: float
 
     class Config:
         from_attributes = True
@@ -207,10 +206,10 @@ class Edge(EdgeBase):
 
 class PlaceBase(BaseModel):
     population: int
-    consumption_per_capita: Decimal
-    water_price: Decimal
-    non_dam_incoming_flow: Decimal
-    radius: Decimal
+    consumption_per_capita: float
+    water_price: float
+    non_dam_incoming_flow: float
+    radius: float
     municipality: str = ""
     closest_dam_id: Optional[UUID4] = None
 
@@ -224,9 +223,9 @@ class Place(PlaceBase, NodeResponseMixin):
 
 
 class JunctionBase(BaseModel):
-    max_flow_rate: Decimal
-    current_flow_rate: Optional[Decimal] = None
-    length: Decimal
+    max_flow_rate: float
+    current_flow_rate: Optional[float] = None
+    length: float
     source_node_id: UUID4
     target_node_id: UUID4
 
@@ -242,7 +241,7 @@ class Junction(JunctionBase, NodeResponseMixin):
 class DamPredictionBase(BaseModel):
     dam_id: UUID4
     timestamp: datetime
-    fill_volume: Decimal
+    fill_volume: float
 
 
 class DamPredictionCreate(DamPredictionBase):
@@ -252,7 +251,7 @@ class DamPredictionCreate(DamPredictionBase):
 class DamPrediction(DamPredictionBase):
     id: UUID4
     created_at: datetime
-    fill_percentage: Decimal = Field(description="Percentage of the dam's maximum volume that is filled")
+    fill_percentage: float = Field(description="Percentage of the dam's maximum volume that is filled")
 
     class Config:
         from_attributes = True

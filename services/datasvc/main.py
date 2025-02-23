@@ -160,15 +160,15 @@ def get_shortest_path(
                 "id": row.id,
                 "node_type": row.node_type,
                 "display_name": row.display_name,
-                "latitude": row.latitude,
-                "longitude": row.longitude,
-                "distance_from_start": Decimal(str(row.distance_from_start))
+                "latitude": float(row.latitude),
+                "longitude": float(row.longitude),
+                "distance_from_start": float(row.distance_from_start)
             }
             
             # Add type-specific data
             if row.node_type == "dam" and row.dam_max_volume is not None:
                 node_data["dam_data"] = {
-                    "max_volume": row.dam_max_volume,
+                    "max_volume": float(row.dam_max_volume),
                     "description": row.dam_description,
                     "municipality": row.dam_municipality,
                     "owner": row.dam_owner,
@@ -177,17 +177,17 @@ def get_shortest_path(
             elif row.node_type == "place" and row.place_population is not None:
                 node_data["place_data"] = {
                     "population": row.place_population,
-                    "consumption_per_capita": row.place_consumption_per_capita,
-                    "water_price": row.place_water_price,
-                    "non_dam_incoming_flow": row.place_non_dam_incoming_flow,
-                    "radius": row.place_radius,
+                    "consumption_per_capita": float(row.place_consumption_per_capita),
+                    "water_price": float(row.place_water_price),
+                    "non_dam_incoming_flow": float(row.place_non_dam_incoming_flow),
+                    "radius": float(row.place_radius),
                     "municipality": row.place_municipality
                 }
             elif row.node_type == "junction" and row.junction_max_flow_rate is not None:
                 node_data["junction_data"] = {
-                    "max_flow_rate": row.junction_max_flow_rate,
-                    "current_flow_rate": row.junction_current_flow_rate,
-                    "length": row.junction_length,
+                    "max_flow_rate": float(row.junction_max_flow_rate),
+                    "current_flow_rate": float(row.junction_current_flow_rate) if row.junction_current_flow_rate is not None else None,
+                    "length": float(row.junction_length),
                     "source_node_id": row.junction_source_node_id,
                     "target_node_id": row.junction_target_node_id
                 }
@@ -195,7 +195,7 @@ def get_shortest_path(
             path_nodes.append(node_data)
         
         # Total distance is the distance_from_start of the last node
-        total_distance = path_nodes[-1]["distance_from_start"] if path_nodes else Decimal('0')
+        total_distance = float(path_nodes[-1]["distance_from_start"]) if path_nodes else 0.0
         
         return {
             "path": path_nodes,
@@ -552,21 +552,21 @@ def get_route_to_closest_dam_from_point(
     # Find the place that we're inside of (center and radius)
     places = db.query(models.Place, models.Node).join(models.Node, models.Place.id == models.Node.id).all()
     
-    point_location = (Decimal(str(latitude)), Decimal(str(longitude)))
+    point_location = (float(latitude), float(longitude))
     containing_place = None
     containing_place_node = None
     
     for place, node in places:
-        place_location = (node.latitude, node.longitude)
+        place_location = (float(node.latitude), float(node.longitude))
         # Calculate distance in meters
         distance = calculate_spherical_distance(
-            float(point_location[0]),
-            float(point_location[1]),
-            float(place_location[0]),
-            float(place_location[1])
+            point_location[0],
+            point_location[1],
+            place_location[0],
+            place_location[1]
         ) * 1000  # Convert km to meters
         
-        if distance <= place.radius:
+        if distance <= float(place.radius):
             containing_place = place
             containing_place_node = node
             break
@@ -584,15 +584,15 @@ def get_route_to_closest_dam_from_point(
     point_node = schema.PointNode(
         id="point",
         node_type="point",
-        latitude=Decimal(str(latitude)),
-        longitude=Decimal(str(longitude))
+        latitude=float(latitude),
+        longitude=float(longitude)
     )
     
     # Calculate distances from the point
     path_nodes = [point_node] + path_response.path
     
     # Update distances_from_start for all nodes in the path
-    current_distance = Decimal('0')
+    current_distance = 0.0
     for i in range(1, len(path_nodes)):
         prev_node = path_nodes[i-1]
         curr_node = path_nodes[i]
@@ -605,15 +605,15 @@ def get_route_to_closest_dam_from_point(
             float(curr_node.longitude)
         ) * 1000  # Convert km to meters
         
-        current_distance += Decimal(str(distance))
+        current_distance += float(distance)
         curr_node.distance_from_start = current_distance
     
     # Create place info
     place_info = {
         **containing_place.__dict__,
         "display_name": containing_place_node.display_name,
-        "latitude": containing_place_node.latitude,
-        "longitude": containing_place_node.longitude,
+        "latitude": float(containing_place_node.latitude),
+        "longitude": float(containing_place_node.longitude),
         "created_at": containing_place_node.created_at,
         "updated_at": containing_place_node.updated_at,
     }
