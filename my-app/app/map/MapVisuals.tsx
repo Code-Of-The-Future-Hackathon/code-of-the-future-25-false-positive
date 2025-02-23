@@ -19,9 +19,10 @@ import { Card } from "@/components/ui/card";
 import { ComboboxDemo } from "@/components/combobox-demo";
 import { Button } from "@/components/ui/button";
 import DamInfoComponent from "@/components/dam-info";
-
+import RouteInfo from "@/components/route-info";
 import GetAddress from "@/components/get-address";
 import Address from "@/interfaces/address.interface";
+import Path from "@/interfaces/path.interface";
 
 interface MapVisualsProps {
 	dams: Dam[];
@@ -42,8 +43,11 @@ const MapVisuals = ({ dams }: MapVisualsProps) => {
 	const [isAddressPopupVisible, setIsAddressPopupVisible] = useState(false);
 	const [selectedDam, setSelectedDam] = useState<Dam | null>(null);
 	const [selectedMap, setSelectedMap] = useState("1");
+	const [calculatedPath, setCalculatedPath] = useState<Path[]>([]);
+	const [calculatedTotalDistance, setCalculatedTotalDistance] = useState(0);
 	const [userAddress, setUserAddress] = useState<Address | null>(null);
 
+	// FETCH CACLUATED PATH and TOTAL DISTANCE
 	const handleUserAddressSelect = (address: Address) => {
 		setUserAddress(address);
 	};
@@ -171,14 +175,26 @@ const MapVisuals = ({ dams }: MapVisualsProps) => {
 						</div>
 					))}
 				{selectedMap == "2" && (
-					<Polyline
-						pathOptions={{ color: "blue" }}
-						positions={[
-							[42.43967, 23.63365],
-							[42.51703, 23.53495],
-						]}
-					/>
+					<>
+						<Polyline
+							pathOptions={{ color: "blue" }}
+							positions={[
+								[42.43967, 23.63365],
+								[42.51703, 23.53495],
+							]}
+						/>
+					</>
 				)}
+				{selectedMap != "2" && (
+					<div className="absolute left-5 top-1/2 transform -translate-y-1/2 z-[10000] rounded-lg">
+						<RouteInfo
+							dam={selectedDam}
+							path={calculatedPath}
+							total_distance={calculatedTotalDistance}
+						/>
+					</div>
+				)}
+
 				<MapRelocation />
 			</MapContainer>
 		</div>
