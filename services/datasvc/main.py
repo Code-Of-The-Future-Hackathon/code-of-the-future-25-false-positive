@@ -1,5 +1,6 @@
 from uuid import UUID
 import uuid
+from typing import Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
@@ -886,3 +887,53 @@ def read_alert(alert_id: UUID, db: Session = Depends(get_db)):
     if db_alert is None:
         raise HTTPException(status_code=404, detail="Alert not found")
     return db_alert
+
+
+# Complaint endpoints
+@app.post("/complaints", response_model=schema.Complaint)
+def create_complaint(complaint: schema.ComplaintCreate, db: Session = Depends(get_db)):
+    try:
+        # Verify place_id and dam_id if provided
+        if complaint.place_id:
+            place = db.query(models.Place).filter(models.Place.id == complaint.place_id).first()
+            if not place:
+                raise HTTPException(status_code=404, detail="Place not found")
+        
+        if complaint.dam_id:
+            dam = db.query(models.Dam).filter(models.Dam.id == complaint.dam_id).first()
+            if not dam:
+                raise HTTPException(status_code=404, detail="Dam not found")
+        
+        # Create complaint
+        db_complaint = models.Complaint(**complaint.model_dump())
+        db.add(db_complaint)
+        db.commit()
+        db.refresh(db_complaint)
+        return db_complaint
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/complaints", response_model=list[schema.Complaint])
+def read_complaints(
+    skip: int = 0,
+    limit: int = 100,
+    status: Optional[str] = Query(None, enum=["pending", "in_progress", "resolved"]),
+    db: Session = Depends(get_db)
+):
+    query = db.query(models.Complaint)
+    
+    # Filter by status if provided
+    if status:
+        query = query.filter(models.Complaint.status == status)
+    
+    return query.order_by(models.Complaint.created_at.desc()).offset(skip).limit(limit).all()
+
+
+@app.get("/complaints/{complaint_id}", response_model=schema.Complaint)
+def read_complaint(complaint_id: UUID, db: Session = Depends(get_db)):
+    db_complaint = db.query(models.Complaint).filter(models.Complaint.id == complaint_id).first()
+    if db_complaint is None:
+        raise HTTPException(status_code=404, detail="Complaint not found")
+    return db_complaint

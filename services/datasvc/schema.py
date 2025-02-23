@@ -312,3 +312,25 @@ class DamAlert(DamAlertBase):
 
     class Config:
         from_attributes = True
+
+
+class ComplaintBase(BaseModel):
+    user_email: EmailStr
+    subject: str
+    description: str
+    status: Literal["pending", "in_progress", "resolved"] = "pending"
+    place_id: Optional[UUID4] = None
+    dam_id: Optional[UUID4] = None
+
+
+class ComplaintCreate(ComplaintBase):
+    pass
+
+
+class Complaint(ComplaintBase):
+    id: UUID4
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True

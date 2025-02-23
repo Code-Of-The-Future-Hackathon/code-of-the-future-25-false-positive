@@ -171,3 +171,22 @@ class DamAlert(Base):
     timestamp = Column(DateTime(timezone=True), nullable=False)
     message = Column(Text, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class Complaint(Base):
+    __tablename__ = "complaints"
+    __table_args__ = {"schema": "false_positive"}
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_email = Column(String, nullable=False)
+    subject = Column(String, nullable=False)
+    description = Column(Text, nullable=False)
+    status = Column(
+        Enum("pending", "in_progress", "resolved", name="complaint_status", schema="false_positive"),
+        nullable=False,
+        default="pending"
+    )
+    place_id = Column(UUID(as_uuid=True), ForeignKey("false_positive.places.id"), nullable=True)
+    dam_id = Column(UUID(as_uuid=True), ForeignKey("false_positive.dams.id"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
